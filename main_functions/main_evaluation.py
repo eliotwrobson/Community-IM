@@ -18,7 +18,7 @@ def main_evaluation(
     interval,
     all_algorithms,
 ):
-    "importing required built-in modules"
+    # importing required built-in modules
     import itertools
     import logging
     import os as os
@@ -28,17 +28,17 @@ def main_evaluation(
 
     import networkx as nx
 
-    "importing required user-defined modules"
+    # importing required user-defined modules
     from im_functions.true_influence import true_influence
     from im_functions.weighted_network import weighted_network
 
-    "dropping celfpp from "
+    # dropping celfpp from
     all_algorithms = all_algorithms[1:]
 
-    "start timer"
+    # start timer
     start = timeit.default_timer()
 
-    "reading the network"
+    # reading the network
     if "florentine" in name_id:
         network = nx.florentine_families_graph()
         network.name = name_id
@@ -73,34 +73,34 @@ def main_evaluation(
         network.name = name_id
         network = network.to_directed()
 
-    "relabeling the nodes as positive integers viz. 1,2,..."
+    # relabeling the nodes as positive integers viz. 1,2,...
     network = nx.convert_node_labels_to_integers(network, first_label=1)
 
-    "adding weights if the network is unweighted"
+    # adding weights if the network is unweighted
     if not is_graph_already_weighted:
         network = weighted_network(network, method=weighting_schemes[0])
 
-    "results folder"
+    # results folder
     results_folder = (
         "results/results_" + diffusion_models[0] + "_" + weighting_schemes[0]
     )
 
-    "creating log files folder within the results folder"
+    # creating log files folder within the results folder
     results_folder_log_files = (
         results_folder + os.sep + "results" + network.name + os.sep + "log_files"
     )
     if not os.path.exists(results_folder_log_files):
         os.makedirs(results_folder_log_files)
 
-    "remove the log file from previous runs"
+    # remove the log file from previous runs
     if os.path.exists(results_folder_log_files + os.sep + "exp_influence.log"):
         os.remove(results_folder_log_files + os.sep + "exp_influence.log")
 
-    "removing exisiting log handlers"
+    # removing exisiting log handlers
     for handler in logging.root.handlers[:]:
         logging.root.removeHandler(handler)
 
-    "set up logging to file"
+    # set up logging to file
     logging.basicConfig(
         level=logging.DEBUG,
         format="%(asctime)s %(name)-6s %(levelname)-6s %(message)s",
@@ -109,20 +109,20 @@ def main_evaluation(
         filemode="w",
     )
 
-    "define a Handler which writes INFO messages or higher to the sys.stderr"
+    # define a Handler which writes INFO messages or higher to the sys.stderr
     console = logging.StreamHandler()
     console.setLevel(logging.INFO)
 
-    "set a format which is simpler for console use"
+    # set a format which is simpler for console use
     formatter = logging.Formatter("%(name)-6s: %(levelname)-6s %(message)s")
 
-    "tell the handler to use this format"
+    # tell the handler to use this format
     console.setFormatter(formatter)
 
-    "add the handler to the root logger"
+    # add the handler to the root logger
     logging.getLogger().addHandler(console)
 
-    "Now, we can log to the root logger, or any other logger. First the root..."
+    # Now, we can log to the root logger, or any other logger. First the root...
     logging.info(
         "I am running main_evaluation.py for " + network.name[1:] + " network."
     )
@@ -136,10 +136,10 @@ def main_evaluation(
     )
     logging.info("I am using " + weighting_schemes[0] + " weighting scheme.")
 
-    "results folder path"
+    # results folder path
     results_folder = results_folder + os.sep + "results" + name_id
 
-    "reading the existing exp_influences_dict or declaring empty dictionary of exp_influences"
+    # reading the existing exp_influences_dict or declaring empty dictionary of exp_influences
     try:
         filename = "exp_influences_dict.pkl"
         filename_with_path = (
@@ -151,7 +151,7 @@ def main_evaluation(
         exp_influences_dict = {}
     exp_influences_dict["name_id"] = name_id
 
-    "reading seed set and exp_influence pair from celfpp results and appending them to exp_influences_dict"
+    # reading seed set and exp_influence pair from celfpp results and appending them to exp_influences_dict
     max_budget = min(max_budget, len(network.nodes))
     filename = "output_celfpp__" + str(max_budget) + "__.pkl"
     filename_with_path = results_folder + os.sep + "pickle_files" + os.sep + filename
@@ -163,14 +163,14 @@ def main_evaluation(
                 "exp_influence"
             ][i + 1]
 
-    "seeds sets for which the expected influences are already there"
+    # seeds sets for which the expected influences are already there
     seed_sets_in_exp_influences_dict = [
         set(item)
         for item in list(exp_influences_dict.keys())
         if not isinstance(item, str)
     ]
 
-    "reading the output files except celfpp and looking for unique seed sets from all of them"
+    # reading the output files except celfpp and looking for unique seed sets from all of them
     unique_seed_sets = []
     # print(all_algorithms)
     for algorithm in all_algorithms:
@@ -189,14 +189,14 @@ def main_evaluation(
                     # print(seed_set)
                     unique_seed_sets.append(set(seed_set))
 
-    "removing seed sets which are already in seed_sets_in_exp_influences_dict"
+    # removing seed sets which are already in seed_sets_in_exp_influences_dict
     unique_seed_sets = [
         item
         for item in unique_seed_sets
         if item not in seed_sets_in_exp_influences_dict
     ]
 
-    "working only for the interval"
+    # working only for the interval
     unique_seed_sets = [
         item for item in unique_seed_sets if len(item) % interval == 0 or len(item) == 1
     ]
@@ -215,35 +215,35 @@ def main_evaluation(
         "There are " + str(len(unique_seed_sets)) + " unique seed sets to work with."
     )
 
-    "diffusion model and number of simulations"
+    # diffusion model and number of simulations
     diffusion_model = results_dict["diffusion_model"]
     n_sim = results_dict["n_sim"]
     exp_influences_dict["diffusion_model"] = diffusion_model
     exp_influences_dict["n_sim"] = n_sim
 
-    "calculating the expected influence and saving in the exp_influences_dict"
+    # calculating the expected influence and saving in the exp_influences_dict
     logging.info("I am using " + diffusion_model + " diffusion model.")
     logging.info("I am using " + str(n_sim) + " Monte-Carlo simulations.")
 
-    "set to list for seed sets in unique_seed_sets"
+    # set to list for seed sets in unique_seed_sets
     unique_seed_sets = [list(item) for item in unique_seed_sets]
 
-    "create a list of all parameter lists, then use product"
+    # create a list of all parameter lists, then use product
     tmp = [[network], unique_seed_sets, [diffusion_model], [n_sim], [[]], [name_id]]
     inputs = itertools.product(*tmp)
     inputs = [tuple(i) for i in inputs]
 
-    "parallelization"
+    # TODO The parallelism here might actually be slowing things down
     pool = Pool(processes=num_procs)
     exp_influences_list = list(pool.map(true_influence, inputs))
     pool.close()
     pool.join()
 
-    "appending the [seed_set, exp_influence] pairs from exp_influences_list to exp_influences_dict"
+    # appending the [seed_set, exp_influence] pairs from exp_influences_list to exp_influences_dict
     for [seed_set, exp_influence] in exp_influences_list:
         exp_influences_dict[tuple(sorted(set(seed_set)))] = exp_influence
 
-    "saving the exp_influences_dict as a pickle file"
+    # saving the exp_influences_dict as a pickle file
     filename = "exp_influences_dict.pkl"
     filename_with_path = results_folder + os.sep + "exp_influences" + os.sep + filename
     if not os.path.exists(results_folder + os.sep + "exp_influences"):
@@ -251,19 +251,19 @@ def main_evaluation(
     with open(filename_with_path, "wb") as f:
         pickle.dump(exp_influences_dict, f)
 
-    "adding exp influences to the original output files"
+    # adding exp influences to the original output files
     for algorithm in all_algorithms:
         filename = "output_" + algorithm + "__" + str(max_budget) + "__.pkl"
         filename_with_path = (
             results_folder + os.sep + "pickle_files" + os.sep + filename
         )
         if os.path.exists(filename_with_path):
-            "reading the file"
+            # reading the file
             with open(filename_with_path, "rb") as f:
                 results_dict = pickle.load(f)
-            "keep only the first entry i.e. 0 in case the other values already exist"
+            # keep only the first entry i.e. 0 in case the other values already exist
             results_dict["exp_influence"] = [results_dict["exp_influence"][0]]
-            "adding the exp influences"
+            # adding the exp influences
             for seed_set in results_dict["best_seed_set"][1:]:
                 if tuple(sorted(seed_set)) in exp_influences_dict.keys():
                     results_dict["exp_influence"].append(
@@ -271,7 +271,7 @@ def main_evaluation(
                     )
                 else:
                     results_dict["exp_influence"].append(0)
-            "saving the file"
+            # saving the file
             with open(filename_with_path, "wb") as f:
                 pickle.dump(results_dict, f)
 
@@ -293,7 +293,7 @@ def main_evaluation(
     logging.info("I used " + diffusion_model + " diffusion model.")
     logging.info("I used " + str(n_sim) + " Monte-Carlo simulations.")
 
-    "end timer"
+    # end timer
     end = timeit.default_timer()
     logging.info(
         "Total time taken by main_exp_influence.py is "
