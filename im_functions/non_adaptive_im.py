@@ -1,12 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Created on Tue May 21 21:01:00 2019
-
-@author: abhishek.umrawal
-"""
-
-# importing required user-defined modules"
 from im_functions.ccelfpp1_im import ccelfpp1_im
 from im_functions.celfpp_im import celfpp_im
 
@@ -34,8 +25,7 @@ def non_adaptive_im(inpt):
         is_graph_already_weighted,
     ) = inpt
 
-    if is_graph_already_weighted == False:
-        "## adding weights to the unweighted network"
+    if not is_graph_already_weighted:
         network = weighted_network(network, method=weighting_scheme)
 
     if algorithm == "celfpp":
