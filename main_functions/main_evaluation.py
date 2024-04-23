@@ -6,6 +6,19 @@ Created on Wed May 22 21:49:19 2019
 @author: abhishek.umrawal
 """
 
+import itertools
+import logging
+import os as os
+import pickle as pickle
+import timeit
+from multiprocessing import Pool
+
+import networkx as nx
+
+# importing required user-defined modules
+from im_functions.true_influence import true_influence
+from im_functions.weighted_network import weighted_network
+
 
 def main_evaluation(
     name_id,
@@ -18,20 +31,6 @@ def main_evaluation(
     interval,
     all_algorithms,
 ):
-    # importing required built-in modules
-    import itertools
-    import logging
-    import os as os
-    import pickle as pickle
-    import timeit
-    from multiprocessing import Pool
-
-    import networkx as nx
-
-    # importing required user-defined modules
-    from im_functions.true_influence import true_influence
-    from im_functions.weighted_network import weighted_network
-
     # dropping celfpp from
     all_algorithms = all_algorithms[1:]
 
