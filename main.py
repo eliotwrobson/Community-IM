@@ -1,8 +1,14 @@
+import dataset_manager as dm
+import mle_greedy as mle
+
+
 def fractional_im_experiments() -> None:
     """
     The goal of these experiments is to run the fractional IM algorithm against various other algorithms.
     """
-    pass
+    graph = dm.get_graph("facebook")
+    print("got graph")
+    mle.mle_greedy(graph, 10.4)
 
 
 def main() -> None:

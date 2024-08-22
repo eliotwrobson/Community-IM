@@ -7,7 +7,6 @@ from cynetdiff.models import DiffusionModel
 from cynetdiff.utils import networkx_to_ic_model
 
 DiffusionGraphT = t.Union[nx.Graph, nx.DiGraph]
-MethodsT = t.Literal["cynetdiff", "ndlib", "python"]
 
 
 def compute_marginal_gain(
@@ -54,7 +53,7 @@ def compute_marginal_gain(
 
 # TODO have this take in the model itself.
 def celf_im(
-    graph: DiffusionGraphT, k: int, method: MethodsT, num_trials: int = 1_000
+    graph: DiffusionGraphT, k: int, num_trials: int = 1_000
 ) -> tuple[list[int], list[float]]:
     """
     Input: graph object, number of seed nodes
@@ -63,8 +62,8 @@ def celf_im(
     Code adapted from this blog post:
     https://hautahi.com/im_greedycelf
     """
-
-    print(f"Starting CELF algorithm with {method} backend.")
+    print("here")
+    print("Starting CELF algorithm.")
     # Make cynetdiff model
     cynetdiff_model, _ = networkx_to_ic_model(graph)
 
