@@ -32,15 +32,13 @@ def process_deezer(file_path: str) -> nx.DiGraph:
 # TODO I think the exception is happening here? Somewhere in this file at least
 def process_facebook(file_path: str) -> nx.DiGraph:
     with gzip.open(file_path, "r") as f:
-        facebook_graph = nx.Graph(
-            tuple(map(int, line.split())) for line in f.readlines()
-        )
+        facebook_graph = nx.Graph()
+        for line in f.readlines():
+            u, v = tuple(map(int, line.split()))
+            facebook_graph.add_edge(u, v)
 
-    # facebook_graph.name = "facebook"
     facebook_graph = facebook_graph.to_directed()
-    print("thing")
     set_activation_weighted_cascade(facebook_graph)
-    print("other thing")
     return facebook_graph
 
 
@@ -88,8 +86,7 @@ def get_graph(dataset_name: str):
         known_hash=dataset_info["hash"],
         progressbar=True,
     )
-    print("here?")
+
     graph = dataset_info["processor"](data_path)
-    print("doen")
     graph.name = dataset_name
     return graph

@@ -14,7 +14,7 @@ def compute_marginal_gain(
     new_node: int,
     seeds: list[int],  # TODO replace with None in case of no new seeds
     num_trials: int,
-) -> float:
+) -> tuple[float, float]:
     """
     Compute the marginal gain in the spread of influence by adding a new node to the set of seed nodes,
     by summing the differences of spreads for each trial and then taking the average.
@@ -48,7 +48,7 @@ def compute_marginal_gain(
         cynetdiff_model.advance_until_completion()
         new_spread += cynetdiff_model.get_num_activated_nodes()
 
-    return (new_spread - original_spread) / num_trials
+    return (new_spread - original_spread) / num_trials, new_spread / num_trials
 
 
 # TODO have this take in the model itself.
@@ -62,7 +62,6 @@ def celf_im(
     Code adapted from this blog post:
     https://hautahi.com/im_greedycelf
     """
-    print("here")
     print("Starting CELF algorithm.")
     # Make cynetdiff model
     cynetdiff_model, _ = networkx_to_ic_model(graph)
@@ -77,7 +76,7 @@ def celf_im(
 
     # First, compute all marginal gains
     print("Computing initial marginal gains.")
-    for node in tqdm(list(dir_graph.nodes())):
+    for node in tqdm.tqdm(list(dir_graph.nodes())):
         marg_gain.append(
             (
                 -compute_marginal_gain(
@@ -85,7 +84,7 @@ def celf_im(
                     node,
                     [],
                     num_trials,
-                ),
+                )[0],
                 node,
             )
         )
@@ -98,10 +97,10 @@ def celf_im(
     spreads = [spread]
 
     print("Performing greedy selection.")
-    for _ in range(k - 1):
+    for _ in tqdm.trange(k - 1):
         while True:
             current_mg, current_node = heapq.heappop(marg_gain)
-            new_mg_neg = -compute_marginal_gain(
+            new_mg_neg, new_influence = compute_marginal_gain(
                 cynetdiff_model,
                 current_node,
                 S,
@@ -113,8 +112,7 @@ def celf_im(
             else:
                 heapq.heappush(marg_gain, (current_mg, current_node))
 
-        spread += -new_mg_neg
         S.append(current_node)
-        spreads.append(spread)
+        spreads.append(new_influence)
 
     return S, spreads
