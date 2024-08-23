@@ -54,8 +54,7 @@ def process_wikipedia(file_path: str) -> nx.DiGraph:
 
             edge_list.append(tuple(map(int, line_list)))
 
-    wikipedia_graph = nx.DiGraph(edge_list)
-    # wikipedia_graph.name = "wikipedia"
+    wikipedia_graph = nx.from_edgelist(edge_list).to_directed()
     set_activation_weighted_cascade(wikipedia_graph)
 
     return wikipedia_graph
