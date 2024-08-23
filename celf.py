@@ -62,7 +62,7 @@ def celf_im(
     Code adapted from this blog post:
     https://hautahi.com/im_greedycelf
     """
-    print("Starting CELF algorithm.")
+    # print("Starting CELF algorithm.")
     # Make cynetdiff model
     cynetdiff_model, _ = networkx_to_ic_model(graph)
 
@@ -75,7 +75,7 @@ def celf_im(
     marg_gain = []
 
     # First, compute all marginal gains
-    print("Computing initial marginal gains.")
+    # print("Computing initial marginal gains.")
     for node in tqdm.tqdm(list(dir_graph.nodes())):
         marg_gain.append(
             (
@@ -96,21 +96,22 @@ def celf_im(
     spread = -max_mg
     spreads = [spread]
 
-    print("Performing greedy selection.")
+    # print("Performing greedy selection.")
     for _ in tqdm.trange(k - 1):
         while True:
-            current_mg, current_node = heapq.heappop(marg_gain)
-            new_mg_neg, new_influence = compute_marginal_gain(
+            current_mg_neg, current_node = heapq.heappop(marg_gain)
+            new_mg, new_influence = compute_marginal_gain(
                 cynetdiff_model,
                 current_node,
                 S,
                 num_trials,
             )
 
-            if new_mg_neg > current_mg:
+            # TODO add tolerance here for noise in marginal gain
+            if new_mg <= -current_mg_neg:
                 break
             else:
-                heapq.heappush(marg_gain, (current_mg, current_node))
+                heapq.heappush(marg_gain, (-new_mg, current_node))
 
         S.append(current_node)
         spreads.append(new_influence)
