@@ -40,6 +40,9 @@ def process_facebook(file_path: str) -> nx.DiGraph:
 
 
 def process_wikipedia(file_path: str) -> nx.DiGraph:
+    """
+    TODO switch to using iterators for this
+    """
     edge_list = []
 
     with gzip.open(file_path, "r") as f:
@@ -61,7 +64,59 @@ def process_wikipedia(file_path: str) -> nx.DiGraph:
 
 def process_epinions1(file_path: str) -> nx.DiGraph:
     with gzip.open(file_path, "r") as f:
-        pass
+        line_iter = iter(f.readlines())
+
+        # Skip first 4 lines because they're comments
+        for _ in range(4):
+            next(line_iter)
+
+        epinions1_graph = nx.from_edgelist(
+            tuple(map(int, line.strip().split())) for line in line_iter
+        ).to_directed()
+
+    set_activation_weighted_cascade(epinions1_graph)
+    return epinions1_graph
+
+
+def process_sgn_epinions(file_path: str) -> nx.DiGraph:
+    with gzip.open(file_path, "r") as f:
+        line_iter = iter(f.readlines())
+
+        # Skip first 4 lines because they're comments
+        for _ in range(4):
+            next(line_iter)
+
+        sgn_epinions_graph = nx.from_edgelist(
+            tuple(map(int, line.strip().split()[:2])) for line in line_iter
+        ).to_directed()
+
+    # Remove some self-loop edges.
+    sgn_epinions_graph.remove_edges_from(nx.selfloop_edges(sgn_epinions_graph))
+
+    set_activation_weighted_cascade(sgn_epinions_graph)
+    return sgn_epinions_graph
+
+
+def process_youtube(file_path: str) -> nx.DiGraph:
+    """
+    TODO this is really slow. Instead of making a digraph, directly turn this into CSR arrays.
+    """
+
+    with gzip.open(file_path, "r") as f:
+        line_iter = iter(f.readlines())
+
+        # Skip first 4 lines because they're comments
+        for _ in range(4):
+            next(line_iter)
+
+        youtube_graph = nx.convert_node_labels_to_integers(
+            nx.from_edgelist(
+                tuple(map(int, line.strip().split())) for line in line_iter
+            ).to_directed()
+        )
+
+    set_activation_weighted_cascade(youtube_graph)
+    return youtube_graph
 
 
 def get_graph(dataset_name: str) -> nx.DiGraph:
@@ -81,10 +136,20 @@ def get_graph(dataset_name: str) -> nx.DiGraph:
             "processor": process_deezer,
             "hash": "dd66a73f8d8690b5bc300ba378883fb2c2f6316aec8917b6a2428e352fc9e498",
         },
-        "Epinions1": {
+        "epinions1": {
             "link": "https://snap.stanford.edu/data/soc-Epinions1.txt.gz",
             "processor": process_epinions1,
-            "hash": None,
+            "hash": "69a2dab71fa5e3a0715487599fc16ca17ddc847379325a6c765bbad6e3e36938",
+        },
+        "sgn_epinions": {
+            "link": "https://snap.stanford.edu/data/soc-sign-epinions.txt.gz",
+            "processor": process_sgn_epinions,
+            "hash": "214513a32f1375695ceab7d7581e463ebe44daa573492de699b0c5d1cf3dde60",
+        },
+        "youtube": {
+            "link": "https://snap.stanford.edu/data/bigdata/communities/com-youtube.ungraph.txt.gz",
+            "processor": process_youtube,
+            "hash": "dff1b97ba7d2fa9c59884b67dcd2275e717ff9501f86ed82ce6582ed4971f3e0",
         },
     }
 

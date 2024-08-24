@@ -6,7 +6,7 @@ def fractional_im_experiments() -> None:
     """
     The goal of these experiments is to run the fractional IM algorithm against various other algorithms.
     """
-    graph = dm.get_graph("facebook")
+    graph = dm.get_graph("youtube")
 
     mle.mle_greedy(graph, 10.4)
 
