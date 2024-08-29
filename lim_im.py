@@ -3,6 +3,7 @@ import logging
 import os
 import pickle
 import timeit
+from pathlib import Path
 
 import networkx as nx
 import numpy as np
@@ -15,25 +16,31 @@ def lim_im(
     lim_folder: str = "lim_code_release",  # TODO change to pathlib path
 ):
     # Set budget as len(network.nodes) if the budget > len(network.nodes)
-    budget = min(budget, len(network.nodes))
+    if budget > network.number_of_nodes():
+        raise ValueError(
+            f'Budget "{budget}" is larger than number of nodes in network "{network.name}".'
+        )
+
+    # TODO maybe turn the below into a helper function?
 
     # creating pickle files folder within the results folder
-    results_folder_pickle_files = (
-        "results" + os.sep + "results" + network.name + os.sep + "pickle_files"
+    results_folder_pickle_files = os.path.join(
+        "results", f"results_{network.name}", "pickle_files"
     )
+
     if not os.path.exists(results_folder_pickle_files):
         os.makedirs(results_folder_pickle_files)
 
     # creating log files folder within the results folder
-    results_folder_log_files = (
-        "results" + os.sep + "results" + network.name + os.sep + "log_files"
+    results_folder_log_files = os.path.join(
+        "results", f"results_{network.name}", "log_files"
     )
     if not os.path.exists(results_folder_log_files):
         os.makedirs(results_folder_log_files)
 
     # creating runtime files folder within the results folder
-    results_folder_runtime_files = (
-        "results" + os.sep + "results" + network.name + os.sep + "runtime_files"
+    results_folder_runtime_files = os.path.join(
+        "results", f"results_{network.name}", "runtime_files"
     )
     if not os.path.exists(results_folder_runtime_files):
         os.makedirs(results_folder_runtime_files)
@@ -50,7 +57,12 @@ def lim_im(
         weighted_edges.append(list(edge))
 
     # Writing to file
-    fstr = lim_folder + "/data/" + network.name + ".txt"
+    f_folder = os.path.join(lim_folder, "data")
+    if not os.path.exists(f_folder):
+        os.makedirs(f_folder)
+
+    fstr = Path(f_folder) / f"{network.name}.txt"
+
     with open(fstr, "w") as f:
         f.write(num_nodes)
         f.write("\n")

@@ -17,6 +17,7 @@ def fractional_im_experiments() -> None:
     p = 0.01
 
     graph = nx.gnp_random_graph(n, p)
+    graph.name = "Temp_graph"
 
     li.lim_im(graph, 10)
     print("Here")
