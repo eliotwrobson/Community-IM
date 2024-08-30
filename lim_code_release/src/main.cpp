@@ -750,7 +750,7 @@ SparseMatrix* inputNetwork(string filename){
     	getline(infile,s);
     	istringstream line (s);
     	line >> tempNode1 >> tempNode2 >> temp_1;
-		cout << tempNode1 << " " << tempNode2 << " " << temp_1 << endl;
+		//cout << tempNode1 << " " << tempNode2 << " " << temp_1 << endl;
     	result->insert(Edge(tempNode1, tempNode2, temp_1));
 	}
 
