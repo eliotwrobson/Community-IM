@@ -61,7 +61,8 @@ def lim_im(
     if not os.path.exists(f_folder):
         os.makedirs(f_folder)
 
-    fstr = Path(f_folder) / f"{network.name}.txt"
+    file_name_string = f"{network.name}.txt"
+    fstr = Path(f_folder) / file_name_string
 
     with open(fstr, "w") as f:
         f.write(num_nodes)
@@ -69,14 +70,14 @@ def lim_im(
         f.write(num_edges)
         f.write("\n")
         for weighted_edge in weighted_edges:
-            f.write(" ".join([str(x) for x in weighted_edge]))
+            f.write(" ".join(str(x) for x in weighted_edge))
             f.write("\n")
 
     # Running lim software which is written in C and saving the outputs
     os.chdir(lim_folder + "/src")
     os.system("make")
     start = timeit.default_timer()
-    os.system("./run main.cpp")
+    os.system(f"./run {file_name_string}")
     end = timeit.default_timer()
     runtime = end - start
     os.chdir("..")

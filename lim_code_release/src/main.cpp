@@ -19,7 +19,7 @@ void alo_hill_climbing();
 void algo_ud();
 void algo_cd();
 void algo_hd();
-void algo_cimm();
+void algo_cimm(string dataset);
 void algo_cimm_2();
 void algo_mc_greedy();
 void algo_mc_greedy_2();
@@ -27,8 +27,15 @@ void algo_cimm_value();
 void algo_cimm_alternative();
 void algo_cimm_alternative_2();
 
-int main(){
-	algo_cimm();
+int main(int argc, char* argv[]){
+	// Using a while loop to iterate through arguments
+    /*int i = 0;
+    while (i < argc) {
+        cout << "Argument " << i + 1 << ": " << argv[i]
+             << endl;
+        i++;
+    }*/
+	algo_cimm(argv[1]);
 	/*
 	cout << "1. algo_cimm; 2. algo_ud; 3. algo_cd; 4. algo_hd; 5. algo_cimm_2; 6. algo_mc_greedy; 7. algo_mc_greedy_2; 8. algo_cimm_value; 9. algo_cimm_alternative; 10. algo_cimm_alternative_2" << endl;
 	int algo = 0;
@@ -98,10 +105,10 @@ void algo_cimm_value(){
 	file.close();
 }
 
-void algo_cimm(){
-	cout << "dataset:" << endl;
-	string dataset;
-	cin >> dataset;
+void algo_cimm(string dataset){
+	//cout << "dataset:" << endl;
+	//string dataset;
+	//cin >> dataset;
 	string save_address = "../result/" + dataset;
 	string allocation_address = "../allocation/" + dataset;
 	string time_address = "../time/" + dataset;
