@@ -28,6 +28,8 @@ void algo_cimm_alternative();
 void algo_cimm_alternative_2();
 
 int main(){
+	algo_cimm();
+	/*
 	cout << "1. algo_cimm; 2. algo_ud; 3. algo_cd; 4. algo_hd; 5. algo_cimm_2; 6. algo_mc_greedy; 7. algo_mc_greedy_2; 8. algo_cimm_value; 9. algo_cimm_alternative; 10. algo_cimm_alternative_2" << endl;
 	int algo = 0;
 	cin >> algo;
@@ -63,6 +65,7 @@ int main(){
 	{
 		algo_cimm_alternative_2();
 	}
+	*/
 	system("pause");
 	return 0;
 }
@@ -107,7 +110,7 @@ void algo_cimm(){
 	double l = 1.0;
 	HillClimbing* hill_climbing = new HillClimbing(graph);
 	CIMM* cimm = new CIMM(graph, hill_climbing);
-	
+
 	vector<int>* group_1 = NULL;
 	cout << "group: 0" << endl;
 	int group;
@@ -143,7 +146,7 @@ void algo_cimm(){
 				EventTimer* pctimer = new EventTimer();
 				pctimer->SetTimeEvent("start");
 				vector<double>* value = cimm->run(k/5, delta, eps, l, group_1);
-				
+
 				vector<double> value1 = *value;
 				// printf("allocation: ");
 				for (int i =0; i < value1.size(); i++){
@@ -245,7 +248,7 @@ void algo_cimm_alternative() {
 	string save_address = "../result/" + dataset;
 	string time_address = "../time/" + dataset;
 	dataset = "../data/" + dataset;
-	
+
 	/*int k = 5;
 	double delta = 0.1;*/
 	double l = 1.0;
@@ -349,7 +352,7 @@ void algo_cimm_2(){
 
 	double delta = 1;
 	double l = 1.0;
-	
+
 	double eps_list[3] = {2, 1, 0.5};
 
 	for(int eps_id = 0; eps_id < 3; eps_id ++){
@@ -727,6 +730,10 @@ SparseMatrix* inputNetwork(string filename){
 	int edgeNum;
 
 	ifstream infile(filename.c_str());
+	if (!infile.good()) {
+		throw std::invalid_argument(filename);
+	}
+
 	cout<<"Begin to read the file: "<<filename<<endl;
 
 	string s,s2;
@@ -743,7 +750,8 @@ SparseMatrix* inputNetwork(string filename){
     	getline(infile,s);
     	istringstream line (s);
     	line >> tempNode1 >> tempNode2 >> temp_1;
-    	result->insert(Edge(tempNode1 - 1, tempNode2 - 1, temp_1));
+		cout << tempNode1 << " " << tempNode2 << " " << temp_1 << endl;
+    	result->insert(Edge(tempNode1, tempNode2, temp_1));
 	}
 
     cout << "Finish the reading! Real edgeNum is" << result->getNonZeroNum()<<endl;
