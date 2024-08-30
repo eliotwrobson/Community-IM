@@ -21,7 +21,7 @@ void algo_cd();
 void algo_hd();
 void algo_cimm(string dataset);
 void algo_cimm_2();
-void algo_mc_greedy();
+void algo_mc_greedy(string dataset);
 void algo_mc_greedy_2();
 void algo_cimm_value();
 void algo_cimm_alternative();
@@ -35,13 +35,12 @@ int main(int argc, char* argv[]){
              << endl;
         i++;
     }*/
-	algo_cimm(argv[1]);
-	/*
-	cout << "1. algo_cimm; 2. algo_ud; 3. algo_cd; 4. algo_hd; 5. algo_cimm_2; 6. algo_mc_greedy; 7. algo_mc_greedy_2; 8. algo_cimm_value; 9. algo_cimm_alternative; 10. algo_cimm_alternative_2" << endl;
-	int algo = 0;
-	cin >> algo;
+
+	//cout << "1. algo_cimm; 2. algo_ud; 3. algo_cd; 4. algo_hd; 5. algo_cimm_2; 6. algo_mc_greedy; 7. algo_mc_greedy_2; 8. algo_cimm_value; 9. algo_cimm_alternative; 10. algo_cimm_alternative_2" << endl;
+	int algo = stoi(argv[1]);
+	//cin >> algo;
 	if(algo == 1){
-		algo_cimm();
+		algo_cimm(argv[2]);
 	}
 	else if(algo == 2){
 		algo_ud();
@@ -56,7 +55,7 @@ int main(int argc, char* argv[]){
 		algo_cimm_2();
 	}
 	else if(algo == 6){
-		algo_mc_greedy();
+		algo_mc_greedy(argv[2]);
 	}
 	else if(algo == 7){
 		algo_mc_greedy_2();
@@ -72,7 +71,7 @@ int main(int argc, char* argv[]){
 	{
 		algo_cimm_alternative_2();
 	}
-	*/
+
 	system("pause");
 	return 0;
 }
@@ -468,10 +467,10 @@ void algo_cimm_alternative_2() {
 	}
 }
 
-void algo_mc_greedy(){
-	cout << "dataset:" << endl;
-	string dataset;
-	cin >> dataset;
+void algo_mc_greedy(string dataset){
+	//cout << "dataset:" << endl;
+	//string dataset;
+	//cin >> dataset;
 	string save_address = "../result/" + dataset;
 	string time_address = "../time/" + dataset;
 	dataset = "../data/" + dataset;

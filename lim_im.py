@@ -77,7 +77,8 @@ def lim_im(
     os.chdir(lim_folder + "/src")
     os.system("make")
     start = timeit.default_timer()
-    os.system(f"./run {file_name_string}")
+    # TODO algorithm is hardcoded. Add as a parameter with a key.
+    os.system(f"./run 6 {file_name_string}")
     end = timeit.default_timer()
     runtime = end - start
     os.chdir("..")
