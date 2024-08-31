@@ -61,6 +61,7 @@ def lim_im(
     if not os.path.exists(f_folder):
         os.makedirs(f_folder)
 
+    # TODO only run the external program code below if it hasn't been run before.
     file_name_string = f"{network.name}.txt"
     fstr = Path(f_folder) / file_name_string
 
@@ -91,18 +92,18 @@ def lim_im(
         f.write(json.dumps(runtime_info))
 
     # Output filename for best seed set
-    out_filename_allocation = (
-        lim_folder + "/allocation/" + network.name + "_cimm_eps=0.500000_group_0_new"
+    out_filename_allocation = os.path.join(
+        lim_folder, "allocation", network.name + ".txt_cimm_eps=0.500000_group_0_new"
     )
 
     # Output filename for exp influences
-    out_filename_exp = (
-        lim_folder + "/result/" + network.name + "_cimm_eps=0.500000_group_0_new"
+    out_filename_exp = os.path.join(
+        lim_folder, "result", network.name + ".txt_cimm_eps=0.500000_group_0_new"
     )
 
     # Output filename for time
-    out_filename_time = (
-        lim_folder + "/time/" + network.name + "_cimm_eps=0.500000_group_0_new"
+    out_filename_time = os.path.join(
+        lim_folder, "time", network.name + ".txt_cimm_eps=0.500000_group_0_new"
     )
 
     # Getting the best seed sets (allocations) and exp influence
