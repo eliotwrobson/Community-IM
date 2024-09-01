@@ -56,45 +56,47 @@ def lim_im(
     for edge in network.edges.data("activation_prob"):
         weighted_edges.append(list(edge))
 
-    # Writing to file
-    f_folder = os.path.join(lim_folder, "data")
-    if not os.path.exists(f_folder):
-        os.makedirs(f_folder)
-
-    # TODO only run the external program code below if it hasn't been run before.
-    file_name_string = f"{network.name}.txt"
-    fstr = Path(f_folder) / file_name_string
-
-    with open(fstr, "w") as f:
-        f.write(num_nodes)
-        f.write("\n")
-        f.write(num_edges)
-        f.write("\n")
-        for weighted_edge in weighted_edges:
-            f.write(" ".join(str(x) for x in weighted_edge))
-            f.write("\n")
-
-    # Running lim software which is written in C and saving the outputs
-    os.chdir(lim_folder + "/src")
-    os.system("make")
-    start = timeit.default_timer()
-    # TODO algorithm is hardcoded. Add as a parameter with a key.
-    os.system(f"./run 6 {file_name_string}")
-    end = timeit.default_timer()
-    runtime = end - start
-    os.chdir("..")
-    os.chdir("..")
-
-    # Saving runtime info to a text file
-    runtime_info = {"lim": runtime}
-    fstr = results_folder_runtime_files + os.sep + "runtime_info_lim.txt"
-    with open(fstr, "w") as f:
-        f.write(json.dumps(runtime_info))
-
     # Output filename for best seed set
     out_filename_allocation = os.path.join(
         lim_folder, "allocation", network.name + ".txt_cimm_eps=0.500000_group_0_new"
     )
+
+    # Only run code if outfile does not exist for graph already.
+    if not os.path.exists(out_filename_allocation):
+        # Writing graph to data file
+        f_folder = os.path.join(lim_folder, "data")
+        if not os.path.exists(f_folder):
+            os.makedirs(f_folder)
+
+        # TODO only run the external program code below if it hasn't been run before.
+        file_name_string = f"{network.name}.txt"
+        fstr = Path(f_folder) / file_name_string
+
+        with open(fstr, "w") as f:
+            f.write(num_nodes)
+            f.write("\n")
+            f.write(num_edges)
+            f.write("\n")
+            for weighted_edge in weighted_edges:
+                f.write(" ".join(str(x) for x in weighted_edge))
+                f.write("\n")
+
+        # Running lim software which is written in C and saving the outputs
+        os.chdir(lim_folder + "/src")
+        os.system("make")
+        start = timeit.default_timer()
+        # TODO algorithm is hardcoded. Add as a parameter with a key.
+        os.system(f"./run 1 {file_name_string}")
+        end = timeit.default_timer()
+        runtime = end - start
+        os.chdir("..")
+        os.chdir("..")
+
+        # Saving runtime info to a text file
+        runtime_info = {"lim": runtime}
+        fstr = results_folder_runtime_files + os.sep + "runtime_info_lim.txt"
+        with open(fstr, "w") as f:
+            f.write(json.dumps(runtime_info))
 
     # Output filename for exp influences
     out_filename_exp = os.path.join(
@@ -132,41 +134,6 @@ def lim_im(
             f.write(str(val))
             f.write("\n")
 
-    # best_seed_set += random.sample(set(list(network.nodes)).difference(best_seed_set),budget-len(best_seed_set))
-    # exp_influence += [exp_influence[-1] for x in range(budget-len(exp_influence))]
-
-    # Saving the results
-    # if all_upto_budget:
-    #     results = {
-    #         "budget": budget,
-    #         # "diffusion_model": diffusion_model,
-    #         "algorithm": "lim",
-    #         # "n_sim": n_sim,
-    #         "best_seed_set": best_seed_sets,
-    #         "network_name": network.name,
-    #         "exp_influence": [0] + exp_influence,
-    #     }
-
-    #     fstr = results_folder_pickle_files + os.sep + "output_lim__%i__.pkl" % (budget)
-    #     with open(fstr, "wb") as f:
-    #         pickle.dump(results, f)
-
-    #     logging.info("The estimated exp influences are as follows.")
-    #     logging.info(str([0] + exp_influence))
-    #     logging.info(
-    #         "Total time taken by lim-IM is "
-    #         + " "
-    #         + str(round(runtime, 2))
-    #         + " seconds."
-    #     )
-
-    #     return (
-    #         [[None]] + [best_seed_set[: k + 1] for k, _ in enumerate(best_seed_set)],
-    #         [0] + exp_influence,
-    #         runtime,
-    #     )
-
-    # else:
     results = {
         "budget": budget,
         # "diffusion_model": diffusion_model,
@@ -183,8 +150,5 @@ def lim_im(
 
     logging.info("The estimated exp influence is as follows.")
     logging.info(str(exp_influence[-1]))
-    logging.info(
-        "Total time taken by lim-IM is " + " " + str(round(runtime, 2)) + " seconds."
-    )
 
     return best_seed_set, exp_influence[-1], runtime
