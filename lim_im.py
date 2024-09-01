@@ -120,6 +120,7 @@ def lim_im(
 
     # Getting the runtimes (cumulative in seconds)
     run_times = [x.split(" ")[7] for x in open(out_filename_time).readlines()]
+    # TODO I don't think this cumulative part is necessary.
     run_times = np.cumsum([0] + [float(x) for x in run_times])
 
     print(best_seed_sets)
@@ -151,4 +152,4 @@ def lim_im(
     logging.info("The estimated exp influence is as follows.")
     logging.info(str(exp_influence[-1]))
 
-    return best_seed_set, exp_influence[-1], runtime
+    return best_seed_set, exp_influence[-1], runtimes
