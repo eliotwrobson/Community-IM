@@ -93,12 +93,12 @@ def celf_im(
 
     max_mg, selected_node = heapq.heappop(marg_gain)
     S = [selected_node]
-    spread = -max_mg
-    spreads = [spread]
+    spreads = [-max_mg]
 
     # print("Performing greedy selection.")
     for _ in tqdm.trange(k - 1):
         while True:
+            # TODO maybe putting back on queue is slightly faster?
             current_mg_neg, current_node = heapq.heappop(marg_gain)
             new_mg, new_influence = compute_marginal_gain(
                 cynetdiff_model,

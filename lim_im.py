@@ -1,12 +1,9 @@
 import json
-import logging
 import os
-import pickle
 import timeit
 from pathlib import Path
 
 import networkx as nx
-import numpy as np
 
 
 def lim_im(
@@ -109,24 +106,25 @@ def lim_im(
     )
 
     # Getting the best seed sets (allocations) and exp influence
-    best_seed_sets = [[float(0) for x in range(network.number_of_nodes())]]
+    best_seed_sets = [{}]
 
     for best_seed_set in open(out_filename_allocation).readlines():
-        best_seed_sets.append([float(x) for x in best_seed_set.split(" ")[:-1]])
+        res_dict = {}
+
+        for i, seed_val in enumerate(map(float, best_seed_set.split(" ")[:-1])):
+            if seed_val > 0.0:
+                res_dict[i] = seed_val
+
+        best_seed_sets.append(res_dict)
 
     # Getting the exp influences
     exp_influence = [x.split(" ")[7] for x in open(out_filename_exp).readlines()]
     exp_influence = [float(x) for x in exp_influence]
 
     # Getting the runtimes (cumulative in seconds)
-    run_times = [x.split(" ")[7] for x in open(out_filename_time).readlines()]
+    run_times = [float(x.split(" ")[7]) for x in open(out_filename_time).readlines()]
     # TODO I don't think this cumulative part is necessary.
-    run_times = np.cumsum([0] + [float(x) for x in run_times])
-
-    print(best_seed_sets)
-    print(exp_influence)
-    print(run_times)
-    #    exit()
+    # run_times = np.cumsum([0] + [float(x) for x in run_times])
 
     # Saving all runtimes to a text file
     fstr = results_folder_runtime_files + os.sep + "runtime_info_lim_all.txt"
@@ -135,21 +133,4 @@ def lim_im(
             f.write(str(val))
             f.write("\n")
 
-    results = {
-        "budget": budget,
-        # "diffusion_model": diffusion_model,
-        "algorithm": "lim",
-        # "n_sim": n_sim,
-        "best_seed_set": best_seed_sets[-1],
-        "network_name": network.name,
-        "exp_influence": exp_influence[-1],
-    }
-
-    fstr = results_folder_pickle_files + os.sep + "output_lim__%i__.pkl" % (budget)
-    with open(fstr, "wb") as f:
-        pickle.dump(results, f)
-
-    logging.info("The estimated exp influence is as follows.")
-    logging.info(str(exp_influence[-1]))
-
-    return best_seed_set, exp_influence[-1], runtimes
+    return best_seed_sets, exp_influence[-1], run_times
