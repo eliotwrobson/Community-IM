@@ -27,3 +27,8 @@ nosetests.xml
 
 # MyPy
 .mypy_cache
+
+*.graph
+*.probdist
+
+ris_code_release/subsim
