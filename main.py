@@ -42,6 +42,16 @@ def fractional_im_experiments() -> None:
 
 
 def main() -> None:
+    import ris_selection as rs
+
+    n = 1_000
+    p = 0.01
+
+    graph = nx.gnp_random_graph(n, p)
+    graph.name = "Temp_graph_2"
+    res = rs.ris_im(graph, 10)
+    print(res)
+    exit()
     # TODO add different functions for each experiment. Then, from the command line,
     # an experiment can be selected.
     fractional_im_experiments()

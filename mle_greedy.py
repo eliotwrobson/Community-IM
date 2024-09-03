@@ -8,8 +8,6 @@ from celf import celf_im
 DiffusionGraphT = t.Union[nx.Graph, nx.DiGraph]
 
 
-def ris_stuff():
-
 def mle_greedy(
     graph: DiffusionGraphT, k: float, num_trials: int = 1_000
 ) -> tuple[list[int], list[float]]:
