@@ -5,7 +5,8 @@ import networkx as nx
 
 def ris_im(
     network: nx.Graph, budget: int, *, ris_folder: str = "ris_code_release"
-) -> tuple[set[int], float]:
+) -> tuple[list[int], float]:
+    # TODO add ability to have different weighting schemes.
     # Set budget as len(network.nodes) if the budget > len(network.nodes)
     if budget > network.number_of_nodes():
         raise ValueError(
@@ -20,10 +21,6 @@ def ris_im(
         # f_folder = os.path.join(ris_folder, "graphInfo")
         if not os.path.exists(graph_folder):
             os.makedirs(graph_folder)
-
-        # TODO only run the external program code below if it hasn't been run before.
-        # file_name_string = network.name
-        # fstr = Path(f_folder) / file_name_string
 
         with open(graph_filename, "w") as f:
             f.write(str(network.number_of_nodes()))
@@ -65,47 +62,9 @@ def ris_im(
         ris_folder, "result", "seed", f"seed_{network.name}_subsim_k{budget}_wc"
     )
 
+    # NOTE
+    # Greedy selection from first to least most seen
     with open(seed_filename, "r") as f:
-        seeds = {int(x) for x in f.readlines()}
+        seeds = [int(x) for x in f.readlines()]
 
     return seeds, time_taken
-
-    # # Output filename for exp influences
-    # out_filename_exp = os.path.join(
-    #     lim_folder, "result", network.name + ".txt_cimm_eps=0.500000_group_0_new"
-    # )
-
-    # # Output filename for time
-    # out_filename_time = os.path.join(
-    #     lim_folder, "time", network.name + ".txt_cimm_eps=0.500000_group_0_new"
-    # )
-
-    # Getting the best seed sets (allocations) and exp influence
-    # best_seed_sets = [{}]
-
-    # for best_seed_set in open(out_filename).readlines():
-    #     res_dict = {}
-
-    #     for i, seed_val in enumerate(map(float, best_seed_set.split(" ")[:-1])):
-    #         if seed_val > 0.0:
-    #             res_dict[i] = seed_val
-
-    #     best_seed_sets.append(res_dict)
-
-    # # Getting the exp influences
-    # exp_influence = [x.split(" ")[7] for x in open(out_filename_exp).readlines()]
-    # exp_influence = [float(x) for x in exp_influence]
-
-    # # Getting the runtimes (cumulative in seconds)
-    # run_times = [float(x.split(" ")[7]) for x in open(out_filename_time).readlines()]
-    # # TODO I don't think this cumulative part is necessary.
-    # # run_times = np.cumsum([0] + [float(x) for x in run_times])
-
-    # # Saving all runtimes to a text file
-    # fstr = results_folder_runtime_files + os.sep + "runtime_info_lim_all.txt"
-    # with open(fstr, "w") as f:
-    #     for val in run_times:
-    #         f.write(str(val))
-    #         f.write("\n")
-
-    return best_seed_sets, exp_influence[-1], run_times
