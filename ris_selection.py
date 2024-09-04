@@ -41,7 +41,6 @@ def ris_im(
         # Running lim software which is written in C and saving the outputs
         os.chdir(ris_folder)
         os.system("make")
-        print("HERE")
         # https://github.com/abhishekumrawal/Fractional-IM/tree/main/greedy-approximation/ris_code_release
         os.system(f"./subsim -func=format -gname={network.name} -pdist=wc")
         # The vanilla here means use standard RR method

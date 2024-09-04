@@ -8,10 +8,11 @@ import networkx as nx
 
 def lim_im(
     network: nx.Graph,
-    budget: int,
     *,
     lim_folder: str = "lim_code_release",  # TODO change to pathlib path
 ):
+    # TODO Add this to the LIM code and take in the budget as a parameter.
+    budget = 20
     # Set budget as len(network.nodes) if the budget > len(network.nodes)
     if budget > network.number_of_nodes():
         raise ValueError(
@@ -118,8 +119,7 @@ def lim_im(
         best_seed_sets.append(res_dict)
 
     # Getting the exp influences
-    exp_influence = [x.split(" ")[7] for x in open(out_filename_exp).readlines()]
-    exp_influence = [float(x) for x in exp_influence]
+    exp_influence = [float(x.split(" ")[7]) for x in open(out_filename_exp).readlines()]
 
     # Getting the runtimes (cumulative in seconds)
     run_times = [float(x.split(" ")[7]) for x in open(out_filename_time).readlines()]
