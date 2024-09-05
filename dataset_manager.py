@@ -22,7 +22,7 @@ def process_deezer(file_path: str) -> nx.DiGraph:
                 tuple(map(int, line.strip().split(b","))) for line in line_iter
             )
 
-    deezer_graph = deezer_graph.to_directed()
+    deezer_graph = nx.convert_node_labels_to_integers(deezer_graph.to_directed())
     set_activation_weighted_cascade(deezer_graph)
 
     return deezer_graph
@@ -34,7 +34,7 @@ def process_facebook(file_path: str) -> nx.DiGraph:
             tuple(map(int, line.split())) for line in f.readlines()
         )
 
-    facebook_graph = facebook_graph.to_directed()
+    facebook_graph = nx.convert_node_labels_to_integers(facebook_graph.to_directed())
     set_activation_weighted_cascade(facebook_graph)
     return facebook_graph
 

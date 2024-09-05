@@ -56,8 +56,6 @@ def fractional_im_experiments() -> None:
             }
         )
 
-        # print(lim_influence, mle_influence)
-
     df = pd.DataFrame(graph_runtime_info)
     df.to_csv(f"{graph.name}_benchmark_results.csv")
 
