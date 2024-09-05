@@ -55,7 +55,8 @@ def fractional_im_experiments() -> None:
                 "budget": budget,
             }
         )
-
+        # print(seed_dict, mle_seed_dict)
+        # print(lim_influence, mle_influence)
     df = pd.DataFrame(graph_runtime_info)
     df.to_csv(f"{graph.name}_benchmark_results.csv")
 
