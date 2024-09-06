@@ -16,7 +16,7 @@ def fractional_im_experiments() -> None:
 
     # Get graph to run experiments
     # TODO run every graph through this.
-    graph = dm.get_graph("deezer")
+    graph = dm.get_graph("epinions1")
 
     # n = 1_000
     # p = 0.01

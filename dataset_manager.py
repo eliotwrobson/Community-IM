@@ -70,9 +70,11 @@ def process_epinions1(file_path: str) -> nx.DiGraph:
         for _ in range(4):
             next(line_iter)
 
-        epinions1_graph = nx.from_edgelist(
-            tuple(map(int, line.strip().split())) for line in line_iter
-        ).to_directed()
+        epinions1_graph = nx.convert_node_labels_to_integers(
+            nx.from_edgelist(
+                tuple(map(int, line.strip().split())) for line in line_iter
+            ).to_directed()
+        )
 
     set_activation_weighted_cascade(epinions1_graph)
     return epinions1_graph

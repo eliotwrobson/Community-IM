@@ -64,6 +64,11 @@ def ris_im(
     # NOTE
     # Greedy selection from first to least most seen
     with open(seed_filename, "r") as f:
-        seeds = [int(x) for x in f.readlines()]
+        # TODO Added a minus one to fix an off-by-one error in the output of this program
+        # NOTE for some reason, the epinions network doesn't like this
+        if network.name == "epinions1":
+            seeds = [int(x) for x in f.readlines()]
+        else:
+            seeds = [int(x) - 1 for x in f.readlines()]
 
     return seeds, time_taken
