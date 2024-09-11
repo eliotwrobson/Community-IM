@@ -16,7 +16,7 @@ def fractional_im_experiments() -> None:
 
     # Get graph to run experiments
     # TODO run every graph through this.
-    graph = dm.get_graph("epinions1")
+    graph = dm.get_graph("wikipedia")
 
     # n = 1_000
     # p = 0.01
@@ -26,6 +26,7 @@ def fractional_im_experiments() -> None:
     # graph.name = "Temp_graph"
 
     # First, run LIM code and get data
+    li.ud_im(graph)
     lim_seeds, influence, lim_times = li.lim_im(graph)
 
     # Next, do RIS simulation for rounded budget

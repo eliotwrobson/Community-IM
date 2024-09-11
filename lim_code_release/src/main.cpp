@@ -18,7 +18,7 @@ double spread_2(SparseMatrix* gf, vector<double>* value, int sample_num_1, int s
 void alo_hill_climbing();
 void algo_ud();
 void algo_cd();
-void algo_hd();
+void algo_hd(string dataset);
 void algo_cimm(string dataset);
 void algo_cimm_2();
 void algo_mc_greedy(string dataset);
@@ -49,7 +49,7 @@ int main(int argc, char* argv[]){
 		algo_cd();
 	}
 	else if(algo == 4){
-		algo_hd();
+		algo_hd(argv[2]);
 	}
 	else if(algo == 5){
 		algo_cimm_2();
@@ -667,10 +667,10 @@ void algo_cd(){
 	file.close();
 }
 
-void algo_hd(){
-	cout << "dataset:" << endl;
-	string dataset;
-	cin >> dataset;
+void algo_hd(string dataset){
+	//cout << "dataset:" << endl;
+	//string dataset;
+	//cin >> dataset;
 	string save_address = "../result/" + dataset;
 	string time_address = "../time/" + dataset;
 	dataset = "../data/" + dataset;

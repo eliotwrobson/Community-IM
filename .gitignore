@@ -38,3 +38,5 @@ lim_code_release/src/run
 
 # Complied files
 *.o
+*.txt
+*.csv
