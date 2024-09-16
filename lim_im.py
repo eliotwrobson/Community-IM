@@ -10,7 +10,7 @@ def ud_im(
     network: nx.Graph,
     *,
     lim_folder: str = "lim_code_release",  # TODO change to pathlib path
-):
+) -> tuple[list[float], list[float]]:
     # TODO Add this to the LIM code and take in the budget as a parameter.
     budget = 20
     # Set budget as len(network.nodes) if the budget > len(network.nodes)
@@ -54,13 +54,15 @@ def ud_im(
     for edge in network.edges.data("activation_prob"):
         weighted_edges.append(list(edge))
 
-    # Output filename for best seed set
-    out_filename_allocation = os.path.join(
-        lim_folder, "allocation", network.name + ".txt_hd_M=200"
+    # Output filename for exp influences
+    # NOTE this is a different directory than the other result folder
+
+    out_filename_exp = os.path.join(
+        lim_folder, "result", network.name + ".txt_hd_M=200"
     )
 
     # Only run code if outfile does not exist for graph already.
-    if not os.path.exists(out_filename_allocation):
+    if not os.path.exists(out_filename_exp):
         # Writing graph to data file
         f_folder = os.path.join(lim_folder, "data")
         if not os.path.exists(f_folder):
@@ -84,49 +86,30 @@ def ud_im(
         os.system("make")
         start = timeit.default_timer()
         # TODO algorithm is hardcoded. Add as a parameter with a key.
-        os.system(f"./run 1 {file_name_string}")
+        os.system(f"./run 4 {file_name_string}")
         end = timeit.default_timer()
         runtime = end - start
         os.chdir("..")
         os.chdir("..")
 
-        # Saving runtime info to a text file
-        runtime_info = {"lim": runtime}
-        fstr = results_folder_runtime_files + os.sep + "runtime_info_lim.txt"
-        with open(fstr, "w") as f:
-            f.write(json.dumps(runtime_info))
-
-    exit()
-
-    # Output filename for exp influences
-    out_filename_exp = os.path.join(
-        lim_folder, "result", network.name + ".txt_hd_M=200"
-    )
+        # # Saving runtime info to a text file
+        # runtime_info = {"lim": runtime}
+        # fstr = results_folder_runtime_files + os.sep + "runtime_info_lim.txt"
+        # with open(fstr, "w") as f:
+        #     f.write(json.dumps(runtime_info))
 
     # Output filename for time
     out_filename_time = os.path.join(lim_folder, "time", network.name + ".txt_hd_M=200")
 
-    # Getting the best seed sets (allocations) and exp influence
-    best_seed_sets = [{}]
-
-    for best_seed_set in open(out_filename_allocation).readlines():
-        res_dict = {}
-
-        for i, seed_val in enumerate(map(float, best_seed_set.split(" ")[:-1])):
-            if seed_val > 0.0:
-                res_dict[i] = seed_val
-
-        best_seed_sets.append(res_dict)
-
     # Getting the exp influences
-    exp_influence = [float(x.split(" ")[7]) for x in open(out_filename_exp).readlines()]
+    exp_influence = [
+        float(x.split(" ")[-1]) for x in open(out_filename_exp).readlines()
+    ]
 
     # Getting the runtimes (cumulative in seconds)
-    run_times = [float(x.split(" ")[7]) for x in open(out_filename_time).readlines()]
-    # TODO I don't think this cumulative part is necessary.
-    # run_times = np.cumsum([0] + [float(x) for x in run_times])
+    run_times = [float(x.split(" ")[-1]) for x in open(out_filename_time).readlines()]
 
-    return best_seed_sets, exp_influence[-1], run_times
+    return exp_influence, run_times
 
 
 def lim_im(

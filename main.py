@@ -1,12 +1,25 @@
 # import networkx as nx
+import os
+
+import networkx as nx
 import pandas as pd
 import tqdm
 from cynetdiff.utils import networkx_to_ic_model
 
-import dataset_manager as dm
 import frac_influence as fi
 import lim_im as li
 import ris_selection as rs
+
+
+def make_temp_graph() -> nx.DiGraph:
+    n = 1_000
+    p = 0.01
+    random_seed = 12345
+
+    graph = nx.gnp_random_graph(n, p, seed=random_seed)
+    graph.name = "Temp_graph"
+
+    return graph
 
 
 def fractional_im_experiments() -> None:
@@ -16,17 +29,10 @@ def fractional_im_experiments() -> None:
 
     # Get graph to run experiments
     # TODO run every graph through this.
-    graph = dm.get_graph("wikipedia")
-
-    # n = 1_000
-    # p = 0.01
-    # random_seed = 12345
-
-    # graph = nx.gnp_random_graph(n, p, seed=random_seed)
-    # graph.name = "Temp_graph"
+    # graph = dm.get_graph("wikipedia")
+    graph = make_temp_graph()
 
     # First, run LIM code and get data
-    li.ud_im(graph)
     lim_seeds, influence, lim_times = li.lim_im(graph)
 
     # Next, do RIS simulation for rounded budget
@@ -59,7 +65,17 @@ def fractional_im_experiments() -> None:
         # print(seed_dict, mle_seed_dict)
         # print(lim_influence, mle_influence)
     df = pd.DataFrame(graph_runtime_info)
-    df.to_csv(f"{graph.name}_benchmark_results.csv")
+    df.to_csv("benchmark_results" + os.sep + f"{graph.name}_benchmark_results.csv")
+
+    ud_influences, ud_times = li.ud_im(graph)
+
+    graph_ud_info = [
+        {"ud_influence": ud_influnece, "ud_time": ud_time}
+        for ud_influnece, ud_time in zip(ud_influences, ud_times)
+    ]
+
+    df = pd.DataFrame(graph_ud_info)
+    df.to_csv("benchmark_results" + os.sep + f"{graph.name}_ud_results.csv")
 
 
 def main() -> None:

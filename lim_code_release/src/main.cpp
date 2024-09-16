@@ -682,11 +682,12 @@ void algo_hd(string dataset){
 	srand(time(0));
 	ofstream file, file_time;
 
+	/*
 	int M = 100;
 
 	file.open(save_address + "_hd_M=100", ios::out);
 	file_time.open(time_address + "_hd_M=100", ios::out);
-	for(int k = 5; k < 51; k=k+5){
+	for(int k = 1; k < 21; k=k+1){
 		EventTimer* pctimer = new EventTimer();
 		pctimer->SetTimeEvent("start");
 		vector<double>* value = heuristicsDegree->run(graph, k, M);
@@ -704,11 +705,12 @@ void algo_hd(string dataset){
 	}
 	file.close();
 	file_time.close();
+	*/
 
 	M = 200;
 	file.open(save_address + "_hd_M=200", ios::out);
 	file_time.open(time_address + "_hd_M=200", ios::out);
-	for(int k = 5; k < 51; k=k+5){
+	for(int k = 1; k < 21; k=k+1){
 		EventTimer* pctimer = new EventTimer();
 		pctimer->SetTimeEvent("start");
 		vector<double>* value = heuristicsDegree->run(graph, k, M);
