@@ -41,6 +41,10 @@ def fractional_im_experiments() -> None:
 
     model, _ = networkx_to_ic_model(graph)
 
+    cd_budgets, cd_influences, cd_times = li.cd_im(graph)
+
+    ud_budgets, ud_influences, ud_times = li.ud_im(graph)
+
     graph_runtime_info = []
 
     for seed_dict, lim_time in tqdm.tqdm(
@@ -67,15 +71,23 @@ def fractional_im_experiments() -> None:
     df = pd.DataFrame(graph_runtime_info)
     df.to_csv("benchmark_results" + os.sep + f"{graph.name}_benchmark_results.csv")
 
-    ud_influences, ud_times = li.ud_im(graph)
-
+    # Save ud heuristic stuff
     graph_ud_info = [
-        {"ud_influence": ud_influnece, "ud_time": ud_time}
-        for ud_influnece, ud_time in zip(ud_influences, ud_times)
+        {"ud_budget": ud_budget, "ud_influence": ud_influnece, "ud_time": ud_time}
+        for ud_budget, ud_influnece, ud_time in zip(ud_budgets, ud_influences, ud_times)
     ]
 
     df = pd.DataFrame(graph_ud_info)
     df.to_csv("benchmark_results" + os.sep + f"{graph.name}_ud_results.csv")
+
+    # Save cd heuristic stuff
+    graph_cd_info = [
+        {"cd_budget": cd_budget, "cd_influence": cd_influnece, "cd_time": cd_time}
+        for cd_budget, cd_influnece, cd_time in zip(cd_budgets, cd_influences, cd_times)
+    ]
+
+    df = pd.DataFrame(graph_cd_info)
+    df.to_csv("benchmark_results" + os.sep + f"{graph.name}_cd_results.csv")
 
 
 def main() -> None:

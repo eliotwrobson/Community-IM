@@ -17,7 +17,7 @@ double spread(SparseMatrix* gf, vector<double>* value, int sample_num_1, int sam
 double spread_2(SparseMatrix* gf, vector<double>* value, int sample_num_1, int sample_num_2, vector<vector<pair<int, double>*>*>* prob_activate);
 void alo_hill_climbing();
 void algo_ud();
-void algo_cd();
+void algo_cd(string dataset);
 void algo_hd(string dataset);
 void algo_cimm(string dataset);
 void algo_cimm_2();
@@ -46,7 +46,7 @@ int main(int argc, char* argv[]){
 		algo_ud();
 	}
 	else if(algo == 3){
-		algo_cd();
+		algo_cd(argv[2]);
 	}
 	else if(algo == 4){
 		algo_hd(argv[2]);
@@ -616,10 +616,10 @@ void algo_ud(){
 	file.close();
 }
 
-void algo_cd(){
-	cout << "dataset:" << endl;
-	string dataset;
-	cin >> dataset;
+void algo_cd(string dataset){
+	//cout << "dataset:" << endl;
+	//string dataset;
+	//cin >> dataset;
 	string save_address = "../result/" + dataset;
 	string time_address = "../time/" + dataset;
 	dataset = "../data/" + dataset;
@@ -629,14 +629,14 @@ void algo_cd(){
 	double c = 0.1;
 	srand(time(0));
 	CD* cd = new CD();
-	CIMM* cimm = new CIMM(graph, new HillClimbing(graph));
+	//CIMM* cimm = new CIMM(graph, new HillClimbing(graph));
 
 	ofstream file, file_time;
 	file.open(save_address + "_cd_eps=5e-1", ios::out);
 	file_time.open(time_address + "_cd_eps=5e-1", ios::out);
 
 	double eps = 0.5;
-	for(int k = 5; k < 51; k = k+5){
+	for(int k = 1; k < 20; k = k+1){
 		EventTimer* pctimer = new EventTimer();
 		pctimer->SetTimeEvent("start");
 		int sample_num_1 = 1000;
@@ -660,8 +660,8 @@ void algo_cd(){
 		double num_spread = spread(graph, value, sample_num_1, sample_num_2);
 		delete value;
 		//delete value_opt;
-		file << " k=" << k << " c= " << c << " eps=" << eps << " spread = " << num_spread << endl;
-		cout << " k=" << k << " c= " << c << " eps=" << eps << " spread = " << num_spread << endl;
+		file << "k= " << k << " c= " << c << " eps= " << eps << " spread = " << num_spread << endl;
+		cout << "k= " << k << " c= " << c << " eps= " << eps << " spread = " << num_spread << endl;
 	}
 
 	file.close();
@@ -707,7 +707,7 @@ void algo_hd(string dataset){
 	file_time.close();
 	*/
 
-	M = 200;
+	int M = 200;
 	file.open(save_address + "_hd_M=200", ios::out);
 	file_time.open(time_address + "_hd_M=200", ios::out);
 	for(int k = 1; k < 21; k=k+1){
