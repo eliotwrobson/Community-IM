@@ -1,4 +1,3 @@
-# import networkx as nx
 import os
 
 import networkx as nx
@@ -6,6 +5,7 @@ import pandas as pd
 import tqdm
 from cynetdiff.utils import networkx_to_ic_model
 
+import dataset_manager as dm
 import frac_influence as fi
 import lim_im as li
 import ris_selection as rs
@@ -29,8 +29,8 @@ def fractional_im_experiments() -> None:
 
     # Get graph to run experiments
     # TODO run every graph through this.
-    # graph = dm.get_graph("wikipedia")
-    graph = make_temp_graph()
+    graph = dm.get_graph("wikipedia")
+    # graph = make_temp_graph()
 
     # First, run LIM code and get data
     lim_seeds, influence, lim_times = li.lim_im(graph)
