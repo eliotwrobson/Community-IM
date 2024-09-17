@@ -636,7 +636,7 @@ void algo_cd(string dataset){
 	file_time.open(time_address + "_cd_eps=5e-1", ios::out);
 
 	double eps = 0.5;
-	for(int k = 1; k < 20; k = k+1){
+	for(int k = 1; k < 20; k = k+5){
 		EventTimer* pctimer = new EventTimer();
 		pctimer->SetTimeEvent("start");
 		int sample_num_1 = 1000;
