@@ -351,10 +351,10 @@ def lim_im(
     # run_times = np.cumsum([0] + [float(x) for x in run_times])
 
     # Saving all runtimes to a text file
-    fstr = results_folder_runtime_files + os.sep + "runtime_info_lim_all.txt"
-    with open(fstr, "w") as f:
-        for val in run_times:
-            f.write(str(val))
-            f.write("\n")
+    # fstr = results_folder_runtime_files + os.sep + "runtime_info_lim_all.txt"
+    # with open(fstr, "w") as f:
+    #     for val in run_times:
+    #         f.write(str(val))
+    #         f.write("\n")
 
     return best_seed_sets, exp_influence[-1], run_times
