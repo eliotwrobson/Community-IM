@@ -29,7 +29,7 @@ def fractional_im_experiments() -> None:
 
     # Get graph to run experiments
     # TODO run every graph through this.
-    graph = dm.get_graph("epinions1")
+    graph = dm.get_graph("youtube")
     # graph = make_temp_graph()
 
     # First, run LIM code and get data
@@ -53,8 +53,14 @@ def fractional_im_experiments() -> None:
         seed_vals = sorted(seed_dict.values(), reverse=True)
         mle_seed_dict = dict(zip(vertices, seed_vals))
 
-        lim_influence = fi.compute_fractional_influence(model, seed_dict)
-        mle_influence = fi.compute_fractional_influence(model, mle_seed_dict)
+        # print(mle_seed_dict, seed_dict)
+
+        lim_influence = fi.compute_fractional_influence(
+            model, seed_dict, num_trials=1_000
+        )
+        mle_influence = fi.compute_fractional_influence(
+            model, mle_seed_dict, num_trials=1_000
+        )
         budget = sum(seed_vals)
 
         graph_runtime_info.append(

@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 
 def main() -> None:
     result_folder = "benchmark_results"
-    graph_name = "facebook"
+    graph_name = "youtube"
     lim_influences = []
     mle_influences = []
     budgets = []
