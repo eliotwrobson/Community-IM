@@ -63,6 +63,7 @@ def process_wikipedia(file_path: str) -> nx.DiGraph:
 
 
 def process_epinions1(file_path: str) -> nx.DiGraph:
+    # TODO rename to reflect the fact that several graphs in this dataset use this same conversion format.
     with gzip.open(file_path, "r") as f:
         line_iter = iter(f.readlines())
 
@@ -152,6 +153,11 @@ def get_graph(dataset_name: str) -> nx.DiGraph:
             "link": "https://snap.stanford.edu/data/bigdata/communities/com-youtube.ungraph.txt.gz",
             "processor": process_youtube,
             "hash": "dff1b97ba7d2fa9c59884b67dcd2275e717ff9501f86ed82ce6582ed4971f3e0",
+        },
+        "dblp": {
+            "link": "http://snap.stanford.edu/data/bigdata/communities/com-dblp.ungraph.txt.gz",
+            "processor": process_epinions1,
+            "hash": "9eb0bd30312ddd04e2624f7c36c0983a2e99b116f0385be5a7fce6d6170f4cb3",
         },
     }
 

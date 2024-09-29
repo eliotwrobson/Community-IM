@@ -29,7 +29,7 @@ def fractional_im_experiments() -> None:
 
     # Get graph to run experiments
     # TODO run every graph through this.
-    graph = dm.get_graph("youtube")
+    graph = dm.get_graph("dblp")
     # graph = make_temp_graph()
 
     # First, run LIM code and get data
