@@ -66,7 +66,7 @@ def ris_im(
     with open(seed_filename, "r") as f:
         # TODO Added a minus one to fix an off-by-one error in the output of this program
         # NOTE for some reason, the epinions network doesn't like this
-        if network.name in {"epinions1", "youtube"}:
+        if network.name in {"epinions1", "youtube", "dblp"}:
             seeds = [int(x) for x in f.readlines()]
         else:
             seeds = [int(x) - 1 for x in f.readlines()]
