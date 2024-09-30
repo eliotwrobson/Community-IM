@@ -159,6 +159,11 @@ def get_graph(dataset_name: str) -> nx.DiGraph:
             "processor": process_epinions1,
             "hash": "9eb0bd30312ddd04e2624f7c36c0983a2e99b116f0385be5a7fce6d6170f4cb3",
         },
+        "amazon": {
+            "link": "http://snap.stanford.edu/data/bigdata/communities/com-amazon.ungraph.txt.gz",
+            "processor": process_epinions1,
+            "hash": "bb4b9fcf549c9174049e885e9a0a4057c9724846e7297c4a1ea299b8e92eec34",
+        },
     }
 
     dataset_info = DATASETS[dataset_name]
