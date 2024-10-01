@@ -10,6 +10,8 @@ import frac_influence as fi
 import lim_im as li
 import ris_selection as rs
 
+NUM_TRIALS = 10_000
+
 
 def make_temp_graph() -> nx.DiGraph:
     n = 1_000
@@ -54,12 +56,10 @@ def fractional_im_experiments() -> None:
         mle_seed_dict = dict(zip(vertices, seed_vals))
 
         lim_influence = fi.compute_fractional_influence(
-            model,
-            seed_dict,  # num_trials=1_000
+            model, seed_dict, num_trials=NUM_TRIALS
         )
         mle_influence = fi.compute_fractional_influence(
-            model,
-            mle_seed_dict,  # num_trials=1_000
+            model, mle_seed_dict, num_trials=NUM_TRIALS
         )
         budget = sum(seed_vals)
 
