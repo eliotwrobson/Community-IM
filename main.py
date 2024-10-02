@@ -1,3 +1,4 @@
+import math
 import os
 
 import networkx as nx
@@ -24,6 +25,39 @@ def make_temp_graph() -> nx.DiGraph:
     return graph
 
 
+def get_mle_runtime(graph_name: str, budget: float) -> float:
+    """
+    Get MLE runtime for the given budget
+    """
+
+    int_budget = math.ceil(budget)
+
+    if int_budget == 0:
+        return 0.0
+
+    ris_folder = "ris_code_release"
+    out_filename = os.path.join(
+        ris_folder, "result", f"{graph_name}_subsim_k{int_budget}_wc"
+    )
+
+    # Only run code if outfile does not exist for graph already.
+    if not os.path.exists(out_filename):
+        # Running lim software which is written in C and saving the outputs
+        os.chdir(ris_folder)
+        os.system(f"./subsim -func=format -gname={graph_name} -pdist=wc")
+        # The vanilla here means use standard RR method
+        os.system(
+            f"./subsim -func=im -gname={graph_name} -seedsize={int_budget} -eps=0.01 -vanilla=1"
+        )
+        os.chdir("..")
+
+    with open(out_filename, "r") as f:
+        f_iter = iter(f.readlines())
+        next(f_iter)  # Skip first line
+        # Second line has time spent
+        return float(next(f_iter).split()[2])
+
+
 def fractional_im_experiments() -> None:
     """
     The goal of these experiments is to run the fractional IM algorithm against various other algorithms.
@@ -39,7 +73,7 @@ def fractional_im_experiments() -> None:
 
     # Next, do RIS simulation for rounded budget
     # NOTE Hard-coded to 20 because this is hard-coded in the LIM code
-    vertices, ris_runtime = rs.ris_im(graph, 20)
+    vertices, _ = rs.ris_im(graph, 20)
 
     model, _ = networkx_to_ic_model(graph)
 
@@ -68,8 +102,9 @@ def fractional_im_experiments() -> None:
                 "lim_influence": lim_influence,
                 "lim_runtime": lim_time,
                 "mle_influence": mle_influence,
-                "mle_total_time": ris_runtime,
+                "mle_total_time": get_mle_runtime(graph.name, budget),
                 "budget": budget,
+                "num_samples": NUM_TRIALS,
             }
         )
         # print(seed_dict, mle_seed_dict)

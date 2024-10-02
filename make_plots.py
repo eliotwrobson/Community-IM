@@ -24,9 +24,10 @@ def main() -> None:
         for row in row_iter:
             lim_influences.append(float(row[1]))
             mle_influences.append(float(row[3]))
-            budgets.append(float(row[-1]))
+            budgets.append(float(row[5]))
 
             lim_runtimes.append(float(row[2]))
+            # mle_runtimes.append(get_mle_runtime(graph_name, budget))
             mle_runtimes.append(float(row[4]))
 
     # Next, get the cd runtimes
