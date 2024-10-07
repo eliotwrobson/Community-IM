@@ -24,13 +24,14 @@ def mle_selection(
     desired_profit: float,
     *,
     num_trials=1_000,
-    eps=0.5,
+    eps=0.2,
 ) -> float:
     lo = 0.0
     hi = float(len(nested_solution))
 
     while lo + eps < hi:
-        mid_budget = (hi - lo) // 2 + lo
+        print(lo, hi)
+        mid_budget = (hi - lo) / 2 + lo
 
         budget_dict = assemble_dict(nested_solution, mid_budget)
 
@@ -43,5 +44,12 @@ def mle_selection(
             hi = mid_budget
         else:
             lo = mid_budget
+
+    # NOTE this code makes sure that the final output is the right thing (we want lo, not hi _I think_)
+    # final_profit = fi.compute_fractional_influence(
+    #     graph_model, budget_dict, num_trials=num_trials
+    # )
+    # total_profit = final_profit * profit_per_node
+    # print(total_profit)
 
     return lo

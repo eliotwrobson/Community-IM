@@ -133,11 +133,12 @@ def fractional_im_experiments() -> None:
 
 
 def selection_im_experiments() -> None:
+    print("starting selection")
     graph = dm.get_graph("deezer")
     model, _ = networkx_to_ic_model(graph)
     vertices, _ = rs.ris_im(graph, 20)
-
-    budget = mles.mle_selection(vertices, model, 1.0, 100)
+    print("Running algo")
+    budget = mles.mle_selection(vertices, model, 1.0, 400)
     print(budget)
 
 
