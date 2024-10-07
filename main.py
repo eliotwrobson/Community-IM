@@ -9,6 +9,7 @@ from cynetdiff.utils import networkx_to_ic_model
 import dataset_manager as dm
 import frac_influence as fi
 import lim_im as li
+import mle_selection as mles
 import ris_selection as rs
 
 NUM_TRIALS = 10_000
@@ -65,7 +66,7 @@ def fractional_im_experiments() -> None:
 
     # Get graph to run experiments
     # TODO run every graph through this.
-    graph = dm.get_graph("amazon")
+    graph = dm.get_graph("youtube")
     # graph = make_temp_graph()
 
     # First, run LIM code and get data
@@ -131,6 +132,15 @@ def fractional_im_experiments() -> None:
     df.to_csv("benchmark_results" + os.sep + f"{graph.name}_cd_results.csv")
 
 
+def selection_im_experiments() -> None:
+    graph = dm.get_graph("deezer")
+    model, _ = networkx_to_ic_model(graph)
+    vertices, _ = rs.ris_im(graph, 20)
+
+    budget = mles.mle_selection(vertices, model, 1.0, 100)
+    print(budget)
+
+
 def main() -> None:
     # import ris_selection as rs
 
@@ -144,7 +154,8 @@ def main() -> None:
     # exit()
     # TODO add different functions for each experiment. Then, from the command line,
     # an experiment can be selected.
-    fractional_im_experiments()
+    # fractional_im_experiments()
+    selection_im_experiments()
 
 
 if __name__ == "__main__":
