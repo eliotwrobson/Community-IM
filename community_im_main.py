@@ -32,15 +32,11 @@ def reverse_partition(
 
 
 def compute_community_aware_diffusion_degrees(
-    graph: nx.DiGraph, rev_partition_dict: dict[int, int]
+    graph_no_community_edges: nx.DiGraph,
 ) -> dict[int, float]:
     """
     TODO add a test case for very simple double check of this calculation.
     """
-
-    graph_no_community_edges = nx.subgraph_view(
-        graph, filter_edge=lambda u, v: rev_partition_dict[u] != rev_partition_dict[v]
-    )
 
     res_dict = {}
 
@@ -90,9 +86,19 @@ def main() -> None:
     graph_only_community_edges = nx.subgraph_view(
         graph, filter_edge=lambda u, v: rev_partition_dict[u] == rev_partition_dict[v]
     )
-    res_dict = compute_community_aware_diffusion_degrees(graph, rev_partition_dict)
 
-    print(sorted(res_dict.values()))
+    graph_no_community_edges = nx.subgraph_view(
+        graph, filter_edge=lambda u, v: rev_partition_dict[u] != rev_partition_dict[v]
+    )
+
+    vertex_weight_dict = compute_community_aware_diffusion_degrees(
+        graph_no_community_edges
+    )
+
+    # Now that we have the dict with weights, do influence max using these weights on each
+    # community separately.
+
+    print(sorted(vertex_weight_dict.values()))
     # print(f"Graph number of edges: {graph.number_of_edges()}")
     # print(f"Graph new number of edges: {graph_only_community_edges.number_of_edges()}")
 
