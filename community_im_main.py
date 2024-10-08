@@ -2,6 +2,8 @@
 Main file for running community IM experiments
 """
 
+from collections import defaultdict
+
 import igraph as ig
 import leidenalg as la
 import networkx as nx
@@ -31,29 +33,42 @@ def reverse_partition(
 
 def compute_community_aware_diffusion_degrees(
     graph: nx.DiGraph, rev_partition_dict: dict[int, int]
-) -> dict[int, int]:
+) -> dict[int, float]:
+    """
+    TODO add a test case for very simple double check of this calculation.
+    """
+
     graph_no_community_edges = nx.subgraph_view(
         graph, filter_edge=lambda u, v: rev_partition_dict[u] != rev_partition_dict[v]
     )
 
-    # TODO add temp dict here
+    res_dict = {}
 
     for start_node in graph_no_community_edges:
+        route_proba_dict: defaultdict[int, int] = defaultdict(lambda: 1)
+
         for neighbor in graph_no_community_edges.neighbors(start_node):
             # Add to probability
-            graph_no_community_edges[start_node][neighbor]["activation_prob"]
+            route_proba_dict[neighbor] *= (
+                1.0 - graph_no_community_edges[start_node][neighbor]["activation_prob"]
+            )
 
             for second_neighbor in graph_no_community_edges.neighbors(neighbor):
                 if second_neighbor == start_node:  # Avoid going back to the start node
                     continue
 
-                graph_no_community_edges[start_node][neighbor]["activation_prob"]
-                graph_no_community_edges[neighbor][second_neighbor]["activation_prob"]
+                route_proba_dict[second_neighbor] *= 1.0 - (
+                    graph_no_community_edges[start_node][neighbor]["activation_prob"]
+                    * graph_no_community_edges[neighbor][second_neighbor][
+                        "activation_prob"
+                    ]
+                )
 
-                path = (start_node, neighbor, second_neighbor)
-                print(path)
+        res_dict[start_node] = sum(
+            1.0 - route_prod for route_prod in route_proba_dict.values()
+        )
 
-    return {}
+    return res_dict
 
 
 def main() -> None:
@@ -75,9 +90,11 @@ def main() -> None:
     graph_only_community_edges = nx.subgraph_view(
         graph, filter_edge=lambda u, v: rev_partition_dict[u] == rev_partition_dict[v]
     )
-    compute_community_aware_diffusion_degrees(graph, rev_partition_dict)
-    print(f"Graph number of edges: {graph.number_of_edges()}")
-    print(f"Graph new number of edges: {graph_only_community_edges.number_of_edges()}")
+    res_dict = compute_community_aware_diffusion_degrees(graph, rev_partition_dict)
+
+    print(sorted(res_dict.values()))
+    # print(f"Graph number of edges: {graph.number_of_edges()}")
+    # print(f"Graph new number of edges: {graph_only_community_edges.number_of_edges()}")
 
     # for part in parts:
     #    print(part)
