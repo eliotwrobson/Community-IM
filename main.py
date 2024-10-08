@@ -66,7 +66,7 @@ def fractional_im_experiments() -> None:
 
     # Get graph to run experiments
     # TODO run every graph through this.
-    graph = dm.get_graph("youtube")
+    graph = dm.get_graph("epinions1")
     # graph = make_temp_graph()
 
     # First, run LIM code and get data
@@ -155,8 +155,10 @@ def main() -> None:
     # exit()
     # TODO add different functions for each experiment. Then, from the command line,
     # an experiment can be selected.
-    # fractional_im_experiments()
-    selection_im_experiments()
+    fractional_im_experiments()
+
+
+# selection_im_experiments()
 
 
 if __name__ == "__main__":
