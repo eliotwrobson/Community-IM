@@ -169,8 +169,7 @@ def celf(
 
     max_mg, selected_node = heapq.heappop(marg_gain)
     S = [selected_node]
-    spread = -max_mg
-    spreads = [spread]
+    spreads = [max_mg]
 
     print("Greedily selecting nodes.")
     # Greedily select remaining nodes
@@ -178,7 +177,7 @@ def celf(
     for _ in tqdm.trange(k - 1):
         while True:
             _, current_node = heapq.heappop(marg_gain)
-            new_mg = compute_marginal_gain(
+            new_mg = -compute_marginal_gain(
                 model,
                 vertex_weight_dict,
                 current_node,
@@ -186,14 +185,13 @@ def celf(
                 num_trials=num_trials,
             )
 
-            if new_mg > -marg_gain[0][0]:
+            if new_mg <= -marg_gain[0][0]:
                 break
             else:
-                heapq.heappush(marg_gain, (-new_mg, current_node))
+                heapq.heappush(marg_gain, (new_mg, current_node))
 
-        spread += new_mg
         S.append(current_node)
-        spreads.append(spread)
+        spreads.append(new_mg)
 
     # Return the maximizing set S and the increasing spread values.
     return S, spreads
@@ -206,10 +204,46 @@ def get_nested_solutions(
     vertex_weight_dict: dict[int, float],
 ) -> dict[int, list[int]]:
     model, _ = networkx_to_ic_model(graph_only_community_edges)
+    marg_gain_lists = []
 
+    thing = 0
+
+    # First, run the greedy algorithm on every partition
+    # TODO figure out a way to cache marginal gains
     for community in partition:
         seeds, values = celf(model, budget, community, vertex_weight_dict)
-        print(seeds, values)
+
+        marg_gain_lists.append(iter(zip(values, seeds)))
+        thing += 1
+
+        if thing > 10:
+            break
+
+    # Next, load these into a heap.
+    min_heap = []
+
+    for it in marg_gain_lists:
+        first_element = next(it, None)
+        if first_element is not None:
+            # (value, iterator)
+            heapq.heappush(min_heap, (first_element, it))
+
+    result = []
+
+    while min_heap and len(result) < budget:
+        value, it = heapq.heappop(min_heap)
+        result.append(value)
+
+        # Get the next element from the iterator
+        next_value = next(it, None)
+        if next_value is not None:
+            heapq.heappush(min_heap, (next_value, it))
+
+    print(result)
+
+    return result
+
+    return {}
 
 
 def main() -> None:
