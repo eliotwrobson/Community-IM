@@ -132,7 +132,7 @@ def compute_marginal_gain(
 
 def celf(
     model: DiffusionModel,
-    k: int,
+    max_budget: int,
     nodes: list[int],
     vertex_weight_dict: dict[int, float],
     *,
@@ -170,11 +170,12 @@ def celf(
     max_mg, selected_node = heapq.heappop(marg_gain)
     S = [selected_node]
     spreads = [max_mg]
+    max_budget = min(max_budget, len(nodes))
 
     print("Greedily selecting nodes.")
     # Greedily select remaining nodes
     # TODO check the sign is correct. I had to change this somewhere else I think.
-    for _ in tqdm.trange(k - 1):
+    for _ in tqdm.trange(max_budget - 1):
         while True:
             _, current_node = heapq.heappop(marg_gain)
             new_mg = -compute_marginal_gain(
@@ -226,7 +227,7 @@ def get_nested_solutions(
         marg_gain_lists.append(iter(zip(values, seeds)))
         thing += 1
 
-        if thing > 10:
+        if thing > 1000:
             break
 
     return marg_gain_lists
@@ -249,7 +250,7 @@ def assemble_best_seed_set(
             # (value, iterator)
             heapq.heappush(min_heap, (first_element, it))
 
-    result = []
+    result: list[tuple[float, int]] = []
 
     while min_heap and len(result) < budget:
         value, it = heapq.heappop(min_heap)
@@ -259,8 +260,6 @@ def assemble_best_seed_set(
         next_value = next(it, None)
         if next_value is not None:
             heapq.heappush(min_heap, (next_value, it))
-
-    print(result)
 
     return result
 
