@@ -2,11 +2,16 @@
 Main file for running community IM experiments
 """
 
+import heapq
+import typing as t
 from collections import defaultdict
 
 import igraph as ig
 import leidenalg as la
 import networkx as nx
+import tqdm
+from cynetdiff.models import DiffusionModel
+from cynetdiff.utils import networkx_to_ic_model
 
 import dataset_manager as dm
 
@@ -67,6 +72,146 @@ def compute_community_aware_diffusion_degrees(
     return res_dict
 
 
+def compute_marginal_gain(
+    model: DiffusionModel,
+    vertex_weight_dict: dict[int, float],
+    new_node: int,
+    seeds_list: t.List[int],
+    *,
+    num_trials: int = 1_000,
+) -> float:
+    """
+    Compute the marginal gain in the spread of influence by adding a new node to the set of seed nodes,
+    by summing the differences of spreads for each trial and then taking the average.
+
+    Parameters:
+    - model: The model used for simulating the spread of influence.
+    - new_node: The new node to consider adding to the set of seed nodes.
+    - seeds: The current set of seed nodes.
+    - num_trials: The number of trials to average the spread of influence over.
+
+    Returns:
+    - The average marginal gain in the spread of influence by adding the new node.
+    """
+    seeds = set(seeds_list)
+    original_spread = 0.0
+    # If no seeds at the beginning, original spread is always just zero.
+    # Prevents wasted work in cases where the seed set is empty.
+    if len(seeds) > 0:
+        model.set_seeds(seeds)
+
+        for _ in range(num_trials):
+            model.reset_model()
+            model.advance_until_completion()
+            original_spread += model.get_num_activated_nodes()
+
+            for activated_node in model.get_activated_nodes():
+                original_spread += vertex_weight_dict[activated_node]
+
+    new_seeds = seeds.union({new_node})
+    model.set_seeds(new_seeds)
+
+    new_spread = 0.0
+    for _ in range(num_trials):
+        model.reset_model()
+        model.advance_until_completion()
+        new_spread += model.get_num_activated_nodes()
+
+        for activated_node in model.get_activated_nodes():
+            new_spread += vertex_weight_dict[activated_node]
+
+    # Check to make sure the program isn't going crazy.
+    if (new_spread - original_spread) / num_trials < -5:
+        print(seeds, new_node)
+        print(new_spread, original_spread)
+        raise Exception
+
+    # Avoid floating point division until the very end.
+    return (new_spread - original_spread) / num_trials
+
+
+def celf(
+    model: DiffusionModel,
+    k: int,
+    nodes: list[int],
+    vertex_weight_dict: dict[int, float],
+    *,
+    num_trials: int = 1_000,
+) -> tuple[list[int], list[float]]:
+    """
+    Input: graph object, number of seed nodes
+    Output: optimal seed set, resulting spread, time for each iteration
+    Code adapted from this blog post:
+    https://hautahi.com/im_greedycelf
+    """
+
+    # Run the CELF algorithm
+    marg_gain = []
+
+    print("Computing marginal gains.")
+    # First, compute all marginal gains
+    for node in tqdm.tqdm(nodes):
+        marg_gain.append(
+            (
+                -compute_marginal_gain(
+                    model,
+                    vertex_weight_dict,
+                    node,
+                    [],
+                    num_trials=num_trials,
+                ),
+                node,
+            )
+        )
+
+    # Convert to heap
+    heapq.heapify(marg_gain)
+
+    max_mg, selected_node = heapq.heappop(marg_gain)
+    S = [selected_node]
+    spread = -max_mg
+    spreads = [spread]
+
+    print("Greedily selecting nodes.")
+    # Greedily select remaining nodes
+    # TODO check the sign is correct. I had to change this somewhere else I think.
+    for _ in tqdm.trange(k - 1):
+        while True:
+            _, current_node = heapq.heappop(marg_gain)
+            new_mg = compute_marginal_gain(
+                model,
+                vertex_weight_dict,
+                current_node,
+                S,
+                num_trials=num_trials,
+            )
+
+            if new_mg > -marg_gain[0][0]:
+                break
+            else:
+                heapq.heappush(marg_gain, (-new_mg, current_node))
+
+        spread += new_mg
+        S.append(current_node)
+        spreads.append(spread)
+
+    # Return the maximizing set S and the increasing spread values.
+    return S, spreads
+
+
+def get_nested_solutions(
+    graph_only_community_edges: nx.DiGraph,
+    partition: la.VertexPartition,
+    budget: int,
+    vertex_weight_dict: dict[int, float],
+) -> dict[int, list[int]]:
+    model, _ = networkx_to_ic_model(graph_only_community_edges)
+
+    for community in partition:
+        seeds, values = celf(model, budget, community, vertex_weight_dict)
+        print(seeds, values)
+
+
 def main() -> None:
     """
     Method used in experiments consists of three steps.
@@ -98,12 +243,14 @@ def main() -> None:
     # Now that we have the dict with weights, do influence max using these weights on each
     # community separately.
 
-    print(sorted(vertex_weight_dict.values()))
+    # print(sorted(vertex_weight_dict.values()))
     # print(f"Graph number of edges: {graph.number_of_edges()}")
     # print(f"Graph new number of edges: {graph_only_community_edges.number_of_edges()}")
 
     # for part in parts:
     #    print(part)
+
+    get_nested_solutions(graph_only_community_edges, parts, 10, vertex_weight_dict)
 
 
 if __name__ == "__main__":
