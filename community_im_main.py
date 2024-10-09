@@ -202,9 +202,19 @@ def get_nested_solutions(
     partition: la.VertexPartition,
     budget: int,
     vertex_weight_dict: dict[int, float],
-) -> dict[int, list[int]]:
+) -> list[t.Iterator[tuple[float, int]]]:
+    # dict[int, list[int]]:
+    """
+    Given the graph with only community edges (no edges across communities),
+    a partition of the vertices in each community, a budget, and a dictionary
+    of additional vertex weights.
+
+    Returns a list of iterators of the marginal gains in each community, in increasing
+    order for each community.
+    """
+
     model, _ = networkx_to_ic_model(graph_only_community_edges)
-    marg_gain_lists = []
+    marg_gain_lists: list[t.Iterator[tuple[float, int]]] = []
 
     thing = 0
 
@@ -218,6 +228,17 @@ def get_nested_solutions(
 
         if thing > 10:
             break
+
+    return marg_gain_lists
+
+
+def assemble_best_seed_set(
+    marg_gain_lists: list[t.Iterator[tuple[float, int]]], budget: int
+) -> list[tuple[float, int]]:
+    """
+    Given a list of iterators to the marginal gains from each community,
+    assemble the best set of nodes according to the given budget.
+    """
 
     # Next, load these into a heap.
     min_heap = []
@@ -242,8 +263,6 @@ def get_nested_solutions(
     print(result)
 
     return result
-
-    return {}
 
 
 def main() -> None:
@@ -283,8 +302,13 @@ def main() -> None:
 
     # for part in parts:
     #    print(part)
+    budget = 10
 
-    get_nested_solutions(graph_only_community_edges, parts, 10, vertex_weight_dict)
+    nested_solution_list = get_nested_solutions(
+        graph_only_community_edges, parts, budget, vertex_weight_dict
+    )
+    best_seed_set = assemble_best_seed_set(nested_solution_list, budget)
+    print(best_seed_set)
 
 
 if __name__ == "__main__":
