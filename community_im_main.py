@@ -385,7 +385,8 @@ def main() -> None:
     initialize_cache()
 
     # First, generate graph and partition
-    graph = dm.get_graph("deezer")
+    # TODO this is the stuff to change when running later experiments
+    graph = dm.get_graph("amazon")
     budget = 100
 
     start = time.perf_counter()
