@@ -208,7 +208,8 @@ def celf(
     vertex_weight_dict: dict[int, float] | None,
     *,
     num_trials: int = 1_000,
-) -> tuple[list[int], list[float]]:
+    tqdm_budget: bool = False,
+) -> t.Generator[tuple[float, int], None, None]:  # tuple[list[int], list[float]]:
     """
     Input: graph object, number of seed nodes
     Output: optimal seed set, resulting spread, time for each iteration
@@ -245,8 +246,13 @@ def celf(
 
     # print("Greedily selecting nodes.")
     # Greedily select remaining nodes
-    # TODO check the sign is correct. I had to change this somewhere else I think.
-    for _ in tqdm.trange(max_budget - 1, leave=False):
+    # TODO Add option to use tqdm display here
+
+    budget_iterator = (
+        tqdm.trange(max_budget - 1) if tqdm_budget else range(max_budget - 1)
+    )
+
+    for _ in budget_iterator:
         while True:
             _, current_node = heapq.heappop(marg_gain)
             new_mg = -compute_marginal_gain(
@@ -265,8 +271,10 @@ def celf(
         S.append(current_node)
         spreads.append(new_mg)
 
+        yield new_mg, current_node
+
     # Return the maximizing set S and the increasing spread values.
-    return S, spreads
+    # return S, spreads
 
 
 def get_nested_solutions(
@@ -285,23 +293,15 @@ def get_nested_solutions(
     order for each community.
     """
 
-    with shelve.open(CACHE_FILE_NAME, writeback=True) as cache:
-        if graph_only_community_edges.name in cache["marg_gain_lists"]:
-            return cache["marg_gain_lists"][graph_only_community_edges.name]
+    model, _ = networkx_to_ic_model(graph_only_community_edges)
 
-        model, _ = networkx_to_ic_model(graph_only_community_edges)
-        marg_gain_lists: list[t.Iterator[tuple[float, int]]] = []
+    # TODO maybe get rid of the stuff from the small communities?
+    marg_gain_lists: list[t.Iterator[tuple[float, int]]] = [
+        celf(model, budget, community, vertex_weight_dict)
+        for community in partition.values()
+    ]
 
-        # First, run the greedy algorithm on every partition
-        # TODO figure out a way to cache marginal gains
-        print("Evaluating marginal gains for each community")
-        for community in tqdm.tqdm(partition.values()):
-            seeds, values = celf(model, budget, community, vertex_weight_dict)
-            marg_gain_lists.append(iter(zip(values, seeds)))
-
-        cache["marg_gain_lists"][graph_only_community_edges.name] = marg_gain_lists
-
-        return marg_gain_lists
+    return marg_gain_lists
 
 
 def assemble_best_seed_set(
@@ -315,7 +315,7 @@ def assemble_best_seed_set(
     # Next, load these into a heap.
     min_heap: list[tuple[tuple[float, int], t.Iterator[tuple[float, int]]]] = []
 
-    for it in marg_gain_lists:
+    for it in tqdm.tqdm(marg_gain_lists):
         first_element = next(it, None)
         if first_element is not None:
             # (value, iterator)
@@ -323,7 +323,10 @@ def assemble_best_seed_set(
 
     result: list[tuple[float, int]] = []
 
-    while min_heap and len(result) < budget:
+    for _ in tqdm.trange(budget):
+        if not min_heap:
+            break  # Exit early if no more nodes.
+
         value, it = heapq.heappop(min_heap)
         result.append(value)
 
@@ -331,6 +334,8 @@ def assemble_best_seed_set(
         next_value = next(it, None)
         if next_value is not None:
             heapq.heappush(min_heap, (next_value, it))
+
+    assert len(result) == budget
 
     return result
 
@@ -380,7 +385,7 @@ def main() -> None:
     initialize_cache()
 
     # First, generate graph and partition
-    graph = dm.get_graph("amazon")
+    graph = dm.get_graph("deezer")
     budget = 100
 
     start = time.perf_counter()
@@ -396,15 +401,15 @@ def main() -> None:
 
     # Compare with CELF
     start = time.perf_counter()
-    celf_seeds, _ = celf(
-        model,
-        budget,
-        list(graph.nodes()),
-        None,
-        num_trials=1_000,
+    celf_marg_seeds = list(
+        celf(
+            model, budget, list(graph.nodes()), None, num_trials=1_000, tqdm_budget=True
+        )
     )
     end = time.perf_counter()
     print(f"CELF runtime {end-start}")
+
+    celf_seeds = {seed for _, seed in celf_marg_seeds}
 
     celf_value = evaluate_diffusion(model, celf_seeds)
     print(f"CELF influence {celf_value}")
