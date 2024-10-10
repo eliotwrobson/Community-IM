@@ -4,6 +4,7 @@ Main file for running community IM experiments
 
 import heapq
 import shelve
+import time
 import typing as t
 from collections import defaultdict
 
@@ -334,19 +335,10 @@ def assemble_best_seed_set(
     return result
 
 
-def main() -> None:
-    """
-    Method used in experiments consists of three steps.
-
-    1. Get graph and split into communities.
-    2. Run greedy selection algorithm on each community
-    3. Use progressive budgeting to obtain the final solution.
-    """
-
-    initialize_cache()
-
-    # First, generate graph and partition
-    graph = dm.get_graph("amazon")
+def run_community_im(
+    graph: nx.DiGraph,
+    budget: int,
+):
     parts = get_partition(graph)
 
     # Next, remove inter-community edges from graph
@@ -368,14 +360,34 @@ def main() -> None:
     # Now that we have the dict with weights, do influence max using these weights on each
     # community separately.
 
-    budget = 10
-
     nested_solution_list = get_nested_solutions(
         graph_only_community_edges, parts, budget, vertex_weight_dict
     )
     best_marg_gain_set = assemble_best_seed_set(nested_solution_list, budget)
 
-    best_seed_set = {seed for _, seed in best_marg_gain_set}
+    return {seed for _, seed in best_marg_gain_set}
+
+
+def main() -> None:
+    """
+    Method used in experiments consists of three steps.
+
+    1. Get graph and split into communities.
+    2. Run greedy selection algorithm on each community
+    3. Use progressive budgeting to obtain the final solution.
+    """
+
+    initialize_cache()
+
+    # First, generate graph and partition
+    graph = dm.get_graph("amazon")
+    budget = 100
+
+    start = time.perf_counter()
+    best_seed_set = run_community_im(graph, budget)
+    end = time.perf_counter()
+
+    print(f"Community IM runtime {end-start}")
 
     # Now, evaluate
     model, _ = networkx_to_ic_model(graph)
@@ -383,6 +395,7 @@ def main() -> None:
     print(f"Community IM influence: {influence}")
 
     # Compare with CELF
+    start = time.perf_counter()
     celf_seeds, _ = celf(
         model,
         budget,
@@ -390,6 +403,9 @@ def main() -> None:
         None,
         num_trials=1_000,
     )
+    end = time.perf_counter()
+    print(f"CELF runtime {end-start}")
+
     celf_value = evaluate_diffusion(model, celf_seeds)
     print(f"CELF influence {celf_value}")
 
