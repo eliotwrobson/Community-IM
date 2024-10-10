@@ -3,6 +3,7 @@ Main file for running community IM experiments
 """
 
 import heapq
+import shelve
 import typing as t
 from collections import defaultdict
 
@@ -15,21 +16,55 @@ from cynetdiff.utils import networkx_to_ic_model
 
 import dataset_manager as dm
 
+DictPartition = dict[int, list[int]]
 
-def get_partition(graph: nx.DiGraph) -> la.VertexPartition:
+CACHE_FILE_NAME = "cache.db"
+
+
+def initialize_cache() -> None:
+    db_keys = [
+        "partitions",
+        "graph_diffusion_degree_offsets",
+        "marg_gain_lists",
+    ]
+
+    with shelve.open(CACHE_FILE_NAME) as cache:
+        for key in db_keys:
+            if key not in cache:
+                cache[key] = {}
+
+
+def convert_partition_to_dict(partition: la.VertexPartition) -> DictPartition:
+    return {i: vertices for i, vertices in enumerate(partition)}
+
+
+def get_partition(graph: nx.DiGraph) -> DictPartition:
     """
-    TODO add saving to file if this is slow for large graphs.
+    TODO add a way to try different clustering methods
     """
-    igraph_graph = ig.Graph.from_networkx(graph)
-    return la.find_partition(igraph_graph, la.ModularityVertexPartition)
+    with shelve.open(CACHE_FILE_NAME, writeback=True) as cache:
+        if graph.name not in cache["partitions"]:
+            print("Starting partition")
+
+            igraph_graph = ig.Graph.from_networkx(graph)
+            result = convert_partition_to_dict(
+                la.find_partition(igraph_graph, la.ModularityVertexPartition)
+            )
+            cache["partitions"][graph.name] = result
+
+            print("Partitioning done")
+            return result
+
+        print("Reading partition from cache")
+        return cache["partitions"][graph.name]
 
 
 def reverse_partition(
-    partition: la.VertexPartition,
+    partition: DictPartition,
 ) -> dict[int, int]:
     res_dict = {}
 
-    for i, part in enumerate(partition):
+    for i, part in partition.items():
         for vtx in part:
             res_dict[vtx] = i
 
@@ -43,33 +78,48 @@ def compute_community_aware_diffusion_degrees(
     TODO add a test case for very simple double check of this calculation.
     """
 
-    res_dict = {}
+    with shelve.open(CACHE_FILE_NAME, writeback=True) as cache:
+        if graph_no_community_edges.name in cache["graph_diffusion_degree_offsets"]:
+            return cache["graph_diffusion_degree_offsets"][
+                graph_no_community_edges.name
+            ]
 
-    for start_node in graph_no_community_edges:
-        route_proba_dict: defaultdict[int, int] = defaultdict(lambda: 1)
+        print("Computing community aware diffusion degree")
 
-        for neighbor in graph_no_community_edges.neighbors(start_node):
-            # Add to probability
-            route_proba_dict[neighbor] *= (
-                1.0 - graph_no_community_edges[start_node][neighbor]["activation_prob"]
-            )
+        res_dict = {}
 
-            for second_neighbor in graph_no_community_edges.neighbors(neighbor):
-                if second_neighbor == start_node:  # Avoid going back to the start node
-                    continue
+        for start_node in graph_no_community_edges:
+            route_proba_dict: defaultdict[int, int] = defaultdict(lambda: 1)
 
-                route_proba_dict[second_neighbor] *= 1.0 - (
-                    graph_no_community_edges[start_node][neighbor]["activation_prob"]
-                    * graph_no_community_edges[neighbor][second_neighbor][
-                        "activation_prob"
-                    ]
+            for neighbor in graph_no_community_edges.neighbors(start_node):
+                # Add to probability
+                route_proba_dict[neighbor] *= (
+                    1.0
+                    - graph_no_community_edges[start_node][neighbor]["activation_prob"]
                 )
 
-        res_dict[start_node] = sum(
-            1.0 - route_prod for route_prod in route_proba_dict.values()
-        )
+                for second_neighbor in graph_no_community_edges.neighbors(neighbor):
+                    if (
+                        second_neighbor == start_node
+                    ):  # Avoid going back to the start node
+                        continue
 
-    return res_dict
+                    route_proba_dict[second_neighbor] *= 1.0 - (
+                        graph_no_community_edges[start_node][neighbor][
+                            "activation_prob"
+                        ]
+                        * graph_no_community_edges[neighbor][second_neighbor][
+                            "activation_prob"
+                        ]
+                    )
+
+            res_dict[start_node] = sum(
+                1.0 - route_prod for route_prod in route_proba_dict.values()
+            )
+
+        cache["graph_no_community_edges"][graph_no_community_edges.name] = res_dict
+
+        return res_dict
 
 
 def compute_marginal_gain(
@@ -170,7 +220,7 @@ def celf(
     max_mg, selected_node = heapq.heappop(marg_gain)
     S = [selected_node]
     spreads = [max_mg]
-    max_budget = min(max_budget, len(nodes))
+    max_budget = min(max_budget, len(marg_gain))
 
     print("Greedily selecting nodes.")
     # Greedily select remaining nodes
@@ -200,7 +250,7 @@ def celf(
 
 def get_nested_solutions(
     graph_only_community_edges: nx.DiGraph,
-    partition: la.VertexPartition,
+    partition: DictPartition,
     budget: int,
     vertex_weight_dict: dict[int, float],
 ) -> list[t.Iterator[tuple[float, int]]]:
@@ -214,17 +264,22 @@ def get_nested_solutions(
     order for each community.
     """
 
-    model, _ = networkx_to_ic_model(graph_only_community_edges)
-    marg_gain_lists: list[t.Iterator[tuple[float, int]]] = []
+    with shelve.open(CACHE_FILE_NAME, writeback=True) as cache:
+        if graph_only_community_edges.name in cache["marg_gain_lists"]:
+            return cache["marg_gain_lists"][graph_only_community_edges.name]
 
-    # First, run the greedy algorithm on every partition
-    # TODO figure out a way to cache marginal gains
-    for community in partition:
-        seeds, values = celf(model, budget, community, vertex_weight_dict)
+        model, _ = networkx_to_ic_model(graph_only_community_edges)
+        marg_gain_lists: list[t.Iterator[tuple[float, int]]] = []
 
-        marg_gain_lists.append(iter(zip(values, seeds)))
+        # First, run the greedy algorithm on every partition
+        # TODO figure out a way to cache marginal gains
+        for community in partition.values():
+            seeds, values = celf(model, budget, community, vertex_weight_dict)
+            marg_gain_lists.append(iter(zip(values, seeds)))
 
-    return marg_gain_lists
+        cache["marg_gain_lists"][graph_only_community_edges.name] = marg_gain_lists
+
+        return marg_gain_lists
 
 
 def assemble_best_seed_set(
@@ -267,8 +322,10 @@ def main() -> None:
     3. Use progressive budgeting to obtain the final solution.
     """
 
+    initialize_cache()
+
     # First, generate graph and partition
-    graph = dm.get_graph("deezer")
+    graph = dm.get_graph("amazon")
     parts = get_partition(graph)
 
     # Next, remove inter-community edges from graph
@@ -278,6 +335,7 @@ def main() -> None:
         graph, filter_edge=lambda u, v: rev_partition_dict[u] == rev_partition_dict[v]
     )
 
+    # TODO add the partitioning method to the graph name
     graph_no_community_edges = nx.subgraph_view(
         graph, filter_edge=lambda u, v: rev_partition_dict[u] != rev_partition_dict[v]
     )
@@ -289,12 +347,6 @@ def main() -> None:
     # Now that we have the dict with weights, do influence max using these weights on each
     # community separately.
 
-    # print(sorted(vertex_weight_dict.values()))
-    # print(f"Graph number of edges: {graph.number_of_edges()}")
-    # print(f"Graph new number of edges: {graph_only_community_edges.number_of_edges()}")
-
-    # for part in parts:
-    #    print(part)
     budget = 10
 
     nested_solution_list = get_nested_solutions(
