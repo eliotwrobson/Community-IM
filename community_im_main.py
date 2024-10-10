@@ -117,14 +117,32 @@ def compute_community_aware_diffusion_degrees(
                 1.0 - route_prod for route_prod in route_proba_dict.values()
             )
 
-        cache["graph_no_community_edges"][graph_no_community_edges.name] = res_dict
+        cache["graph_diffusion_degree_offsets"][graph_no_community_edges.name] = (
+            res_dict
+        )
 
         return res_dict
 
 
+def evaluate_diffusion(
+    model: DiffusionModel, seed_set: t.Iterable[int], *, num_samples=10_000
+) -> float:
+    model.set_seeds(seed_set)
+
+    total = 0.0
+
+    for _ in range(num_samples):
+        # Resetting the model doesn't change the initial seed set used.
+        model.reset_model()
+        model.advance_until_completion()
+        total += model.get_num_activated_nodes()
+
+    return total / num_samples
+
+
 def compute_marginal_gain(
     model: DiffusionModel,
-    vertex_weight_dict: dict[int, float],
+    vertex_weight_dict: dict[int, float] | None,
     new_node: int,
     seeds_list: t.List[int],
     *,
@@ -155,8 +173,9 @@ def compute_marginal_gain(
             model.advance_until_completion()
             original_spread += model.get_num_activated_nodes()
 
-            for activated_node in model.get_activated_nodes():
-                original_spread += vertex_weight_dict[activated_node]
+            if vertex_weight_dict is not None:
+                for activated_node in model.get_activated_nodes():
+                    original_spread += vertex_weight_dict[activated_node]
 
     new_seeds = seeds.union({new_node})
     model.set_seeds(new_seeds)
@@ -167,8 +186,9 @@ def compute_marginal_gain(
         model.advance_until_completion()
         new_spread += model.get_num_activated_nodes()
 
-        for activated_node in model.get_activated_nodes():
-            new_spread += vertex_weight_dict[activated_node]
+        if vertex_weight_dict is not None:
+            for activated_node in model.get_activated_nodes():
+                new_spread += vertex_weight_dict[activated_node]
 
     # Check to make sure the program isn't going crazy.
     if (new_spread - original_spread) / num_trials < -5:
@@ -184,7 +204,7 @@ def celf(
     model: DiffusionModel,
     max_budget: int,
     nodes: list[int],
-    vertex_weight_dict: dict[int, float],
+    vertex_weight_dict: dict[int, float] | None,
     *,
     num_trials: int = 1_000,
 ) -> tuple[list[int], list[float]]:
@@ -198,9 +218,9 @@ def celf(
     # Run the CELF algorithm
     marg_gain = []
 
-    print("Computing marginal gains.")
+    # print("Computing marginal gains.")
     # First, compute all marginal gains
-    for node in tqdm.tqdm(nodes):
+    for node in tqdm.tqdm(nodes, leave=False):
         marg_gain.append(
             (
                 -compute_marginal_gain(
@@ -222,10 +242,10 @@ def celf(
     spreads = [max_mg]
     max_budget = min(max_budget, len(marg_gain))
 
-    print("Greedily selecting nodes.")
+    # print("Greedily selecting nodes.")
     # Greedily select remaining nodes
     # TODO check the sign is correct. I had to change this somewhere else I think.
-    for _ in tqdm.trange(max_budget - 1):
+    for _ in tqdm.trange(max_budget - 1, leave=False):
         while True:
             _, current_node = heapq.heappop(marg_gain)
             new_mg = -compute_marginal_gain(
@@ -273,7 +293,8 @@ def get_nested_solutions(
 
         # First, run the greedy algorithm on every partition
         # TODO figure out a way to cache marginal gains
-        for community in partition.values():
+        print("Evaluating marginal gains for each community")
+        for community in tqdm.tqdm(partition.values()):
             seeds, values = celf(model, budget, community, vertex_weight_dict)
             marg_gain_lists.append(iter(zip(values, seeds)))
 
@@ -352,8 +373,25 @@ def main() -> None:
     nested_solution_list = get_nested_solutions(
         graph_only_community_edges, parts, budget, vertex_weight_dict
     )
-    best_seed_set = assemble_best_seed_set(nested_solution_list, budget)
-    print(best_seed_set)
+    best_marg_gain_set = assemble_best_seed_set(nested_solution_list, budget)
+
+    best_seed_set = {seed for _, seed in best_marg_gain_set}
+
+    # Now, evaluate
+    model, _ = networkx_to_ic_model(graph)
+    influence = evaluate_diffusion(model, best_seed_set)
+    print(f"Community IM influence: {influence}")
+
+    # Compare with CELF
+    celf_seeds, _ = celf(
+        model,
+        budget,
+        list(graph.nodes()),
+        None,
+        num_trials=1_000,
+    )
+    celf_value = evaluate_diffusion(model, celf_seeds)
+    print(f"CELF influence {celf_value}")
 
 
 if __name__ == "__main__":

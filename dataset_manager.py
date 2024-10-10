@@ -3,11 +3,13 @@ Retrieves and processes raw graphs from SNAP.
 """
 
 import gzip
+import random
+import shelve
 import zipfile
 
+import cynetdiff.utils as cu
 import networkx as nx
 import pooch
-from cynetdiff.utils import set_activation_weighted_cascade
 
 
 def process_deezer(file_path: str) -> nx.DiGraph:
@@ -23,7 +25,7 @@ def process_deezer(file_path: str) -> nx.DiGraph:
             )
 
     deezer_graph = nx.convert_node_labels_to_integers(deezer_graph.to_directed())
-    set_activation_weighted_cascade(deezer_graph)
+    # set_activation_weighted_cascade(deezer_graph)
 
     return deezer_graph
 
@@ -35,7 +37,7 @@ def process_facebook(file_path: str) -> nx.DiGraph:
         )
 
     facebook_graph = nx.convert_node_labels_to_integers(facebook_graph.to_directed())
-    set_activation_weighted_cascade(facebook_graph)
+    # set_activation_weighted_cascade(facebook_graph)
     return facebook_graph
 
 
@@ -57,7 +59,7 @@ def process_wikipedia(file_path: str) -> nx.DiGraph:
     wikipedia_graph = nx.convert_node_labels_to_integers(
         nx.from_edgelist(edge_list).to_directed()
     )
-    set_activation_weighted_cascade(wikipedia_graph)
+    # set_activation_weighted_cascade(wikipedia_graph)
 
     return wikipedia_graph
 
@@ -77,7 +79,7 @@ def process_epinions1(file_path: str) -> nx.DiGraph:
             ).to_directed()
         )
 
-    set_activation_weighted_cascade(epinions1_graph)
+    # set_activation_weighted_cascade(epinions1_graph)
     return epinions1_graph
 
 
@@ -96,7 +98,7 @@ def process_sgn_epinions(file_path: str) -> nx.DiGraph:
     # Remove some self-loop edges.
     sgn_epinions_graph.remove_edges_from(nx.selfloop_edges(sgn_epinions_graph))
 
-    set_activation_weighted_cascade(sgn_epinions_graph)
+    # set_activation_weighted_cascade(sgn_epinions_graph)
     return sgn_epinions_graph
 
 
@@ -118,11 +120,15 @@ def process_youtube(file_path: str) -> nx.DiGraph:
             ).to_directed()
         )
 
-    set_activation_weighted_cascade(youtube_graph)
     return youtube_graph
 
 
-def get_graph(dataset_name: str) -> nx.DiGraph:
+def get_graph(
+    dataset_name: str,
+    weighting_scheme: str = "weighted_cascade",
+    *,
+    random_seed: int = 12345,
+) -> nx.DiGraph:
     DATASETS = {
         "facebook": {
             "link": "https://snap.stanford.edu/data/facebook_combined.txt.gz",
@@ -166,13 +172,36 @@ def get_graph(dataset_name: str) -> nx.DiGraph:
         },
     }
 
-    dataset_info = DATASETS[dataset_name]
-    data_path = pooch.retrieve(
-        url=dataset_info["link"],
-        known_hash=dataset_info["hash"],
-        progressbar=True,
-    )
+    # Add random seed to make things deterministic
+    random.seed(random_seed)
 
-    graph = dataset_info["processor"](data_path)
-    graph.name = dataset_name
-    return graph
+    key_name = dataset_name + weighting_scheme
+
+    with shelve.open("dataset_cache.db", writeback=True) as cache:
+        if key_name in cache:
+            return cache[key_name]
+
+        dataset_info = DATASETS[dataset_name]
+        data_path = pooch.retrieve(
+            url=dataset_info["link"],
+            known_hash=dataset_info["hash"],
+            progressbar=True,
+        )
+
+        graph = dataset_info["processor"](data_path)
+        # TODO add different options for this
+
+        if weighting_scheme == "weighted_cascade":
+            cu.set_activation_weighted_cascade(graph)
+        elif weighting_scheme == "trivalency":
+            cu.set_activation_random_sample(graph, {0.1, 0.01, 0.001})
+        elif weighting_scheme == "uniform":
+            cu.set_activation_random_sample(graph, {0.1})
+        else:
+            raise ValueError(f"Invalid weighting scheme: {weighting_scheme}")
+
+        graph.name = dataset_name
+
+        cache[key_name] = graph
+
+        return graph
