@@ -217,18 +217,12 @@ def get_nested_solutions(
     model, _ = networkx_to_ic_model(graph_only_community_edges)
     marg_gain_lists: list[t.Iterator[tuple[float, int]]] = []
 
-    thing = 0
-
     # First, run the greedy algorithm on every partition
     # TODO figure out a way to cache marginal gains
     for community in partition:
         seeds, values = celf(model, budget, community, vertex_weight_dict)
 
         marg_gain_lists.append(iter(zip(values, seeds)))
-        thing += 1
-
-        if thing > 1000:
-            break
 
     return marg_gain_lists
 
@@ -242,7 +236,7 @@ def assemble_best_seed_set(
     """
 
     # Next, load these into a heap.
-    min_heap = []
+    min_heap: list[tuple[tuple[float, int], t.Iterator[tuple[float, int]]]] = []
 
     for it in marg_gain_lists:
         first_element = next(it, None)
