@@ -42,14 +42,20 @@ def convert_partition_to_dict(partition: la.VertexPartition) -> DictPartition:
 def get_partition(graph: nx.DiGraph) -> DictPartition:
     """
     TODO add a way to try different clustering methods
+    TODO add the partitioning method to the graph name
     """
     with shelve.open(CACHE_FILE_NAME, writeback=True) as cache:
         if graph.name not in cache["partitions"]:
             print("Starting partition")
 
             igraph_graph = ig.Graph.from_networkx(graph)
+
             result = convert_partition_to_dict(
-                la.find_partition(igraph_graph, la.ModularityVertexPartition)
+                la.find_partition(
+                    igraph_graph,
+                    la.ModularityVertexPartition,
+                    weights="activation_prob",
+                )
             )
             cache["partitions"][graph.name] = result
 
@@ -190,10 +196,10 @@ def compute_marginal_gain(
                 new_spread += vertex_weight_dict[activated_node]
 
     # Check to make sure the program isn't going crazy.
-    if (new_spread - original_spread) / num_trials < -5:
-        print(seeds, new_node)
-        print(new_spread, original_spread)
-        raise Exception
+    # if (new_spread - original_spread) / num_trials < -5:
+    #     print(seeds, new_node)
+    #     print(new_spread, original_spread)
+    #     raise Exception
 
     # Avoid floating point division until the very end.
     return (new_spread - original_spread) / num_trials
@@ -206,14 +212,23 @@ def celf(
     vertex_weight_dict: dict[int, float] | None,
     *,
     num_trials: int = 1_000,
+    marg_gain_error: float = 0.0,
     tqdm_budget: bool = False,
 ) -> t.Generator[tuple[float, int], None, None]:  # tuple[list[int], list[float]]:
     """
+    marg_gain_error: The amount of slack allowed in the computation of marginal gain.
+    Potentially introduces some small error, but likely worth the runtaime gains.
+
     Input: graph object, number of seed nodes
     Output: optimal seed set, resulting spread, time for each iteration
     Code adapted from this blog post:
     https://hautahi.com/im_greedycelf
     """
+
+    if marg_gain_error < 0.0:
+        raise ValueError(
+            f"Invalid marg_gain_error {marg_gain_error}, must be at least 0."
+        )
 
     # Run the CELF algorithm
     marg_gain = []
@@ -242,17 +257,24 @@ def celf(
     spreads = [max_mg]
     max_budget = min(max_budget, len(marg_gain))
 
-    # print("Greedily selecting nodes.")
-    # Greedily select remaining nodes
-    # TODO Add option to use tqdm display here
-
     budget_iterator = (
         tqdm.trange(max_budget - 1) if tqdm_budget else range(max_budget - 1)
     )
 
     for _ in budget_iterator:
         while True:
+            celf_pp_cache = {}
+
             _, current_node = heapq.heappop(marg_gain)
+
+            if len(celf_pp_cache) > 3:
+                raise Exception
+
+            # CELF++ optimization: Cache nodes. If previously computed, use this result
+            if current_node in celf_pp_cache:
+                new_mg = celf_pp_cache[current_node]
+                break
+
             new_mg = -compute_marginal_gain(
                 model,
                 vertex_weight_dict,
@@ -261,7 +283,11 @@ def celf(
                 num_trials=num_trials,
             )
 
-            if new_mg <= -marg_gain[0][0]:
+            celf_pp_cache[current_node] = new_mg
+
+            # My own optimization: Add granularity argument to ignore
+            # TODO double check this works as expected
+            if new_mg - marg_gain_error <= -marg_gain[0][0]:
                 break
             else:
                 heapq.heappush(marg_gain, (new_mg, current_node))
@@ -351,11 +377,6 @@ def run_community_im(
         graph, filter_edge=lambda u, v: rev_partition_dict[u] == rev_partition_dict[v]
     )
 
-    # TODO add the partitioning method to the graph name
-    graph_no_community_edges = nx.subgraph_view(
-        graph, filter_edge=lambda u, v: rev_partition_dict[u] != rev_partition_dict[v]
-    )
-
     vertex_weight_dict = compute_community_aware_diffusion_degrees(
         graph, rev_partition_dict
     )
@@ -384,8 +405,8 @@ def main() -> None:
 
     # First, generate graph and partition
     # TODO this is the stuff to change when running later experiments
-    graph = dm.get_graph("amazon")
-    budget = 10_000
+    graph = dm.get_graph("deezer")
+    budget = 1_000
 
     start = time.perf_counter()
     best_seed_set = run_community_im(graph, budget)
