@@ -36,8 +36,8 @@ class ExperimentResult:
     diffusion_degree_time_taken: float
     graph: str
     weighting_scheme: str
-    granularity: float
-    partition_method: str
+    marginal_gain_error: float
+    partition_method: PartitionMethod | None
     use_diffusion_degree: bool
     seed_set: set[int]
 
@@ -55,18 +55,14 @@ def initialize_cache() -> None:
                 cache[key] = {}
 
 
-def convert_partition_to_dict(partition: la.VertexPartition) -> DictPartition:
-    return {i: vertices for i, vertices in enumerate(partition)}
-
-
 def get_partition(
     graph: nx.DiGraph, partition_method: PartitionMethod
-) -> tuple[DictPartition, float]:
+) -> tuple[float, DictPartition, dict[int, int]]:
     """
     TODO add a way to try different clustering methods
     TODO add the partitioning method to the graph name
     """
-    partition_name = f"{graph.name}_{partition_method}"
+    partition_name = f"{graph.name}_{graph.weighting_scheme}_{partition_method}"
 
     with shelve.open(CACHE_FILE_NAME, writeback=True) as cache:
         if partition_name not in cache["partitions"]:
@@ -83,25 +79,26 @@ def get_partition(
             else:
                 assert_never(partition_method)
 
-            result = convert_partition_to_dict(
-                la.find_partition(
-                    igraph_graph,
-                    partition_method_class,
-                    weights="activation_prob",
-                )
+            partition = la.find_partition(
+                igraph_graph,
+                partition_method_class,
+                weights="activation_prob",
             )
+
+            result = {i: vertices for i, vertices in enumerate(partition)}
+
             end_time = time.perf_counter()
 
             res_tup = (
-                result,
                 end_time - start_time,
+                result,
                 reverse_partition(result),
             )
 
             cache["partitions"][partition_name] = res_tup
 
         print("Reading partition from cache")
-        return res_tup
+        return cache["partitions"][partition_name]
 
 
 def reverse_partition(
@@ -124,9 +121,11 @@ def compute_community_aware_diffusion_degrees(
     TODO add a test case for very simple double check of this calculation.
     """
 
+    cache_entry_name = f"{graph.name}_{graph.weighting_scheme}"
+
     with shelve.open(CACHE_FILE_NAME, writeback=True) as cache:
-        if graph.name in cache["graph_diffusion_degree_offsets"]:
-            return cache["graph_diffusion_degree_offsets"][graph.name]
+        if cache_entry_name in cache["graph_diffusion_degree_offsets"]:
+            return cache["graph_diffusion_degree_offsets"][cache_entry_name]
 
         print("Computing community aware diffusion degree")
         start_time = time.perf_counter()
@@ -163,7 +162,7 @@ def compute_community_aware_diffusion_degrees(
         end_time = time.perf_counter()
         res_tup = (end_time - start_time, res_dict)
 
-        cache["graph_diffusion_degree_offsets"][graph.name] = res_tup
+        cache["graph_diffusion_degree_offsets"][cache_entry_name] = res_tup
 
         return res_tup
 
@@ -175,7 +174,8 @@ def evaluate_diffusion(
 
     total = 0
 
-    for _ in range(num_samples):
+    print("Evaluating quality of diffusion")
+    for _ in tqdm.trange(num_samples):
         # Resetting the model doesn't change the initial seed set used.
         model.reset_model()
         model.advance_until_completion()
@@ -249,8 +249,8 @@ def celf(
     max_budget: int,
     nodes: list[int],
     vertex_weight_dict: dict[int, float] | None,
-    num_trials: int,  # = 1_000,
-    marginal_gain_error: float,  # = 0.05,
+    num_trials: int,
+    marginal_gain_error: float,
     *,
     tqdm_budget: bool = False,
 ) -> t.Generator[tuple[float, int], None, None]:  # tuple[list[int], list[float]]:
@@ -342,10 +342,9 @@ def get_nested_solutions(
     partition: DictPartition,
     budget: int,
     vertex_weight_dict: dict[int, float],
-    num_trials: int,  # = 1_000,
-    marginal_gain_error: float,  # = 0.05,
+    num_trials: int,
+    marginal_gain_error: float,
 ) -> list[t.Iterator[tuple[float, int]]]:
-    # dict[int, list[int]]:
     """
     Given the graph with only community edges (no edges across communities),
     a partition of the vertices in each community, a budget, and a dictionary
@@ -453,11 +452,53 @@ def community_im_runner(
         partition_time_taken=partition_time_taken,
         diffusion_degree_time_taken=diffusion_degree_time_taken,
         graph=graph.name,
-        weighting_scheme=graph.graph["weighting_scheme"],
+        weighting_scheme=graph.weighting_scheme,
         marginal_gain_error=marginal_gain_error,
         partition_method=partition_method,
         use_diffusion_degree=use_diffusion_degree,
         seed_set={seed for _, seed in best_marg_gain_set},
+    )
+
+
+def celf_pp_runner(
+    graph: nx.DiGraph,
+    budget: int,
+    marginal_gain_error: float,
+    num_trials: int,
+) -> tuple[DiffusionModel, ExperimentResult]:
+    # Now that we have the dict with weights, do influence max using these weights on each
+    # community separately.
+
+    start = time.perf_counter()
+    model, _ = networkx_to_ic_model(graph)
+    celf_marg_seeds = list(
+        celf(
+            model,
+            budget,
+            list(graph.nodes()),
+            None,
+            num_trials=num_trials,
+            marginal_gain_error=marginal_gain_error,
+            tqdm_budget=True,
+        )
+    )
+    end = time.perf_counter()
+
+    return (
+        model,
+        ExperimentResult(
+            algorithm="celf-pp",
+            budget=budget,
+            time_taken=end - start,
+            partition_time_taken=0.0,
+            diffusion_degree_time_taken=0.0,
+            graph=graph.name,
+            weighting_scheme=graph.weighting_scheme,
+            marginal_gain_error=marginal_gain_error,
+            partition_method=None,
+            use_diffusion_degree=False,
+            seed_set=celf_marg_seeds,
+        ),
     )
 
 
@@ -475,13 +516,18 @@ def main() -> None:
     # First, generate graph and partition
     # TODO this is the stuff to change when running later experiments
     graph = dm.get_graph("deezer")
-    budget = 1_000
+    budget = 100
 
+    model, celf_result = celf_pp_runner(graph, budget, 0.0, 1_000)
     result = community_im_runner(
         graph, budget, 0.0, "ModularityVertexPartition", True, 1_000
     )
 
     print(result)
+    influence = evaluate_diffusion(model, result.seed_set)
+    print(influence)
+    influence = evaluate_diffusion(model, celf_result.seed_set)
+    print(influence)
 
     # start = time.perf_counter()
     # best_seed_set = run_community_im(graph, budget)

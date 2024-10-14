@@ -5,11 +5,14 @@ Retrieves and processes raw graphs from SNAP.
 import gzip
 import random
 import shelve
+import typing as t
 import zipfile
 
 import cynetdiff.utils as cu
 import networkx as nx
 import pooch
+
+WeightingScheme = t.Literal["weighted_cascade", "trivalency", "uniform"]
 
 
 def process_deezer(file_path: str) -> nx.DiGraph:
@@ -125,7 +128,7 @@ def process_youtube(file_path: str) -> nx.DiGraph:
 
 def get_graph(
     dataset_name: str,
-    weighting_scheme: str = "weighted_cascade",
+    weighting_scheme: WeightingScheme = "weighted_cascade",
     *,
     random_seed: int = 12345,
 ) -> nx.DiGraph:
@@ -198,10 +201,10 @@ def get_graph(
         elif weighting_scheme == "uniform":
             cu.set_activation_random_sample(graph, {0.1})
         else:
-            raise ValueError(f"Invalid weighting scheme: {weighting_scheme}")
+            t.assert_never(weighting_scheme)
 
         graph.name = dataset_name
-        graph.graph["weighting_scheme"] = weighting_scheme
+        graph.weighting_scheme = weighting_scheme
 
         cache[key_name] = graph
 
