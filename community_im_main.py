@@ -196,10 +196,14 @@ def compute_community_aware_diffusion_degrees(
         res_dict = {}
 
         for start_node in tqdm.tqdm(graph, total=graph.number_of_nodes()):
+            # Ignore all edges within the same community as start_node
             modified_graph = nx.subgraph_view(
                 graph,
-                filter_node=lambda x: x == start_node
-                or rev_partition_dict[x] != rev_partition_dict[start_node],
+                filter_edge=lambda u, v: not (
+                    rev_partition_dict[u]
+                    == rev_partition_dict[v]
+                    == rev_partition_dict[start_node]
+                ),
             )
 
             route_proba_dict: defaultdict[int, int] = defaultdict(lambda: 1)
