@@ -201,6 +201,7 @@ def get_graph(
             raise ValueError(f"Invalid weighting scheme: {weighting_scheme}")
 
         graph.name = dataset_name
+        graph.graph["weighting_scheme"] = weighting_scheme
 
         cache[key_name] = graph
 

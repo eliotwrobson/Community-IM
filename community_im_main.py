@@ -7,6 +7,8 @@ import shelve
 import time
 import typing as t
 from collections import defaultdict
+from dataclasses import dataclass
+from typing import assert_never
 
 import igraph as ig
 import leidenalg as la
@@ -18,8 +20,26 @@ from cynetdiff.utils import networkx_to_ic_model
 import dataset_manager as dm
 
 DictPartition = dict[int, list[int]]
+PartitionMethod = t.Literal[
+    "ModularityVertexPartition", "RBConfigurationVertexPartition"
+]
 
 CACHE_FILE_NAME = "cache.db"
+
+
+@dataclass
+class ExperimentResult:
+    algorithm: str
+    budget: int
+    time_taken: float
+    partition_time_taken: float
+    diffusion_degree_time_taken: float
+    graph: str
+    weighting_scheme: str
+    granularity: float
+    partition_method: str
+    use_diffusion_degree: bool
+    seed_set: set[int]
 
 
 def initialize_cache() -> None:
@@ -39,31 +59,49 @@ def convert_partition_to_dict(partition: la.VertexPartition) -> DictPartition:
     return {i: vertices for i, vertices in enumerate(partition)}
 
 
-def get_partition(graph: nx.DiGraph) -> DictPartition:
+def get_partition(
+    graph: nx.DiGraph, partition_method: PartitionMethod
+) -> tuple[DictPartition, float]:
     """
     TODO add a way to try different clustering methods
     TODO add the partitioning method to the graph name
     """
+    partition_name = f"{graph.name}_{partition_method}"
+
     with shelve.open(CACHE_FILE_NAME, writeback=True) as cache:
-        if graph.name not in cache["partitions"]:
+        if partition_name not in cache["partitions"]:
             print("Starting partition")
 
+            start_time = time.perf_counter()
             igraph_graph = ig.Graph.from_networkx(graph)
+
+            # https://leidenalg.readthedocs.io/en/latest/reference.html
+            if partition_method == "ModularityVertexPartition":
+                partition_method_class = la.ModularityVertexPartition
+            elif partition_method == "RBConfigurationVertexPartition":
+                partition_method_class = la.RBConfigurationVertexPartition
+            else:
+                assert_never(partition_method)
 
             result = convert_partition_to_dict(
                 la.find_partition(
                     igraph_graph,
-                    la.ModularityVertexPartition,
+                    partition_method_class,
                     weights="activation_prob",
                 )
             )
-            cache["partitions"][graph.name] = result
+            end_time = time.perf_counter()
 
-            print("Partitioning done")
-            return result
+            res_tup = (
+                result,
+                end_time - start_time,
+                reverse_partition(result),
+            )
+
+            cache["partitions"][partition_name] = res_tup
 
         print("Reading partition from cache")
-        return cache["partitions"][graph.name]
+        return res_tup
 
 
 def reverse_partition(
@@ -81,7 +119,7 @@ def reverse_partition(
 def compute_community_aware_diffusion_degrees(
     graph: nx.DiGraph,
     rev_partition_dict: dict[int, int],
-) -> dict[int, float]:
+) -> tuple[float, dict[int, float]]:
     """
     TODO add a test case for very simple double check of this calculation.
     """
@@ -91,7 +129,7 @@ def compute_community_aware_diffusion_degrees(
             return cache["graph_diffusion_degree_offsets"][graph.name]
 
         print("Computing community aware diffusion degree")
-
+        start_time = time.perf_counter()
         res_dict = {}
 
         for start_node in graph:
@@ -110,9 +148,8 @@ def compute_community_aware_diffusion_degrees(
                 )
 
                 for second_neighbor in modified_graph.neighbors(neighbor):
-                    if (
-                        second_neighbor == start_node
-                    ):  # Avoid going back to the start node
+                    # Avoid going back to the start node
+                    if second_neighbor == start_node:
                         continue
 
                     route_proba_dict[second_neighbor] *= 1.0 - (
@@ -123,10 +160,12 @@ def compute_community_aware_diffusion_degrees(
             res_dict[start_node] = sum(
                 1.0 - route_prod for route_prod in route_proba_dict.values()
             )
+        end_time = time.perf_counter()
+        res_tup = (end_time - start_time, res_dict)
 
-        cache["graph_diffusion_degree_offsets"][graph.name] = res_dict
+        cache["graph_diffusion_degree_offsets"][graph.name] = res_tup
 
-        return res_dict
+        return res_tup
 
 
 def evaluate_diffusion(
@@ -134,7 +173,7 @@ def evaluate_diffusion(
 ) -> float:
     model.set_seeds(seed_set)
 
-    total = 0.0
+    total = 0
 
     for _ in range(num_samples):
         # Resetting the model doesn't change the initial seed set used.
@@ -210,13 +249,13 @@ def celf(
     max_budget: int,
     nodes: list[int],
     vertex_weight_dict: dict[int, float] | None,
+    num_trials: int,  # = 1_000,
+    marginal_gain_error: float,  # = 0.05,
     *,
-    num_trials: int = 1_000,
-    marg_gain_error: float = 0.05,
     tqdm_budget: bool = False,
 ) -> t.Generator[tuple[float, int], None, None]:  # tuple[list[int], list[float]]:
     """
-    marg_gain_error: The amount of slack allowed in the computation of marginal gain.
+    marginal_gain_error: The amount of slack allowed in the computation of marginal gain.
     Potentially introduces some small error, but likely worth the runtaime gains.
 
     Input: graph object, number of seed nodes
@@ -225,9 +264,9 @@ def celf(
     https://hautahi.com/im_greedycelf
     """
 
-    if marg_gain_error < 0.0:
+    if marginal_gain_error < 0.0:
         raise ValueError(
-            f"Invalid marg_gain_error {marg_gain_error}, must be at least 0."
+            f"Invalid marg_gain_error {marginal_gain_error}, must be at least 0."
         )
 
     # Run the CELF algorithm
@@ -284,7 +323,7 @@ def celf(
 
             # My own optimization: Add granularity argument to ignore
             # TODO double check this works as expected
-            if new_mg - marg_gain_error <= -marg_gain[0][0]:
+            if new_mg - marginal_gain_error <= -marg_gain[0][0]:
                 break
             else:
                 heapq.heappush(marg_gain, (new_mg, current_node))
@@ -303,6 +342,8 @@ def get_nested_solutions(
     partition: DictPartition,
     budget: int,
     vertex_weight_dict: dict[int, float],
+    num_trials: int,  # = 1_000,
+    marginal_gain_error: float,  # = 0.05,
 ) -> list[t.Iterator[tuple[float, int]]]:
     # dict[int, list[int]]:
     """
@@ -318,7 +359,14 @@ def get_nested_solutions(
 
     # TODO maybe get rid of the stuff from the small communities?
     marg_gain_lists: list[t.Iterator[tuple[float, int]]] = [
-        celf(model, budget, community, vertex_weight_dict)
+        celf(
+            model,
+            budget,
+            community,
+            vertex_weight_dict,
+            num_trials,
+            marginal_gain_error,
+        )
         for community in partition.values()
     ]
 
@@ -361,32 +409,56 @@ def assemble_best_seed_set(
     return result
 
 
-def run_community_im(
+def community_im_runner(
     graph: nx.DiGraph,
     budget: int,
-):
-    parts = get_partition(graph)
+    marginal_gain_error: float,
+    partition_method: str,
+    use_diffusion_degree: bool,
+    num_trials: int,
+) -> ExperimentResult:
+    partition_time_taken, parts, rev_partition_dict = get_partition(
+        graph, partition_method
+    )
 
     # Next, remove inter-community edges from graph
-    rev_partition_dict = reverse_partition(parts)
-
     graph_only_community_edges = nx.subgraph_view(
         graph, filter_edge=lambda u, v: rev_partition_dict[u] == rev_partition_dict[v]
     )
 
-    vertex_weight_dict = compute_community_aware_diffusion_degrees(
-        graph, rev_partition_dict
+    diffusion_degree_time_taken, vertex_weight_dict = (
+        compute_community_aware_diffusion_degrees(graph, rev_partition_dict)
     )
 
     # Now that we have the dict with weights, do influence max using these weights on each
     # community separately.
 
+    start = time.perf_counter()
     nested_solution_list = get_nested_solutions(
-        graph_only_community_edges, parts, budget, vertex_weight_dict
+        graph_only_community_edges,
+        parts,
+        budget,
+        vertex_weight_dict,
+        num_trials,
+        marginal_gain_error,
     )
     best_marg_gain_set = assemble_best_seed_set(nested_solution_list, budget)
 
-    return {seed for _, seed in best_marg_gain_set}
+    end = time.perf_counter()
+
+    return ExperimentResult(
+        algorithm="community-im",
+        budget=budget,
+        time_taken=end - start,
+        partition_time_taken=partition_time_taken,
+        diffusion_degree_time_taken=diffusion_degree_time_taken,
+        graph=graph.name,
+        weighting_scheme=graph.graph["weighting_scheme"],
+        marginal_gain_error=marginal_gain_error,
+        partition_method=partition_method,
+        use_diffusion_degree=use_diffusion_degree,
+        seed_set={seed for _, seed in best_marg_gain_set},
+    )
 
 
 def main() -> None:
@@ -405,31 +477,37 @@ def main() -> None:
     graph = dm.get_graph("deezer")
     budget = 1_000
 
-    start = time.perf_counter()
-    best_seed_set = run_community_im(graph, budget)
-    end = time.perf_counter()
-
-    print(f"Community IM runtime {end-start}")
-
-    # Now, evaluate
-    model, _ = networkx_to_ic_model(graph)
-    influence = evaluate_diffusion(model, best_seed_set)
-    print(f"Community IM influence: {influence}")
-
-    # Compare with CELF
-    start = time.perf_counter()
-    celf_marg_seeds = list(
-        celf(
-            model, budget, list(graph.nodes()), None, num_trials=1_000, tqdm_budget=True
-        )
+    result = community_im_runner(
+        graph, budget, 0.0, "ModularityVertexPartition", True, 1_000
     )
-    end = time.perf_counter()
-    print(f"CELF runtime {end-start}")
 
-    celf_seeds = {seed for _, seed in celf_marg_seeds}
+    print(result)
 
-    celf_value = evaluate_diffusion(model, celf_seeds)
-    print(f"CELF influence {celf_value}")
+    # start = time.perf_counter()
+    # best_seed_set = run_community_im(graph, budget)
+    # end = time.perf_counter()
+
+    # print(f"Community IM runtime {end-start}")
+
+    # # Now, evaluate
+    # model, _ = networkx_to_ic_model(graph)
+    # influence = evaluate_diffusion(model, best_seed_set)
+    # print(f"Community IM influence: {influence}")
+
+    # # Compare with CELF
+    # start = time.perf_counter()
+    # celf_marg_seeds = list(
+    #     celf(
+    #         model, budget, list(graph.nodes()), None, num_trials=1_000, tqdm_budget=True
+    #     )
+    # )
+    # end = time.perf_counter()
+    # print(f"CELF runtime {end-start}")
+
+    # celf_seeds = {seed for _, seed in celf_marg_seeds}
+
+    # celf_value = evaluate_diffusion(model, celf_seeds)
+    # print(f"CELF influence {celf_value}")
 
 
 if __name__ == "__main__":
