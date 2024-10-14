@@ -584,11 +584,11 @@ def degree_runner(
     min_heap: list[tuple[int, int]] = []
 
     # Iterate through the nodes and their out-degrees
-    for node in graph.nodes():
+    for node in tqdm.tqdm(graph.nodes()):
         node_tup = (-graph.out_degree(node), node)
 
         # If the heap exceeds size k, pop the smallest element
-        if len(min_heap) <= budget:
+        if len(min_heap) < budget:
             heapq.heappush(min_heap, node_tup)
         else:
             heapq.heappushpop(min_heap, node_tup)
@@ -640,6 +640,8 @@ def main() -> None:
 
     for graph_name, weighting_scheme in graphs:
         graph = dm.get_graph(graph_name, weighting_scheme, random_seed=random_seed)
+
+        print(f"Running degree on {graph_name} with budget {max_budget}.")
 
         # Start with degree discount baseline because it's easy to compute.
         graph_benchmark_results: list[ExperimentResult] = [
