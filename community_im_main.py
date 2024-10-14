@@ -212,7 +212,7 @@ def celf(
     vertex_weight_dict: dict[int, float] | None,
     *,
     num_trials: int = 1_000,
-    marg_gain_error: float = 0.0,
+    marg_gain_error: float = 0.05,
     tqdm_budget: bool = False,
 ) -> t.Generator[tuple[float, int], None, None]:  # tuple[list[int], list[float]]:
     """
@@ -266,9 +266,6 @@ def celf(
             celf_pp_cache = {}
 
             _, current_node = heapq.heappop(marg_gain)
-
-            if len(celf_pp_cache) > 3:
-                raise Exception
 
             # CELF++ optimization: Cache nodes. If previously computed, use this result
             if current_node in celf_pp_cache:
