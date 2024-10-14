@@ -4,6 +4,6 @@
   "partitioning_algorithms": ["ModularityVertexPartition"],
   "marginal_gain_errors": [0.0],
   "use_diffusion_degree": [false, true],
-  "budgets": [10, 20, 100],
+  "budgets": [1],
   "num_samples": [1000]
 }

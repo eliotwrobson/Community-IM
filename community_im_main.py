@@ -195,9 +195,14 @@ def compute_community_aware_diffusion_degrees(
                         * modified_graph[neighbor][second_neighbor]["activation_prob"]
                     )
 
-            res_dict[start_node] = sum(
+            node_score = sum(
                 1.0 - route_prod for route_prod in route_proba_dict.values()
             )
+
+            assert node_score >= 0.0
+
+            res_dict[start_node] = node_score
+
         end_time = time.perf_counter()
         res_tup = (end_time - start_time, res_dict)
 
