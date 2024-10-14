@@ -376,7 +376,7 @@ def get_nested_solutions(
     graph_only_community_edges: nx.DiGraph,
     partition: DictPartition,
     budget: int,
-    vertex_weight_dict: dict[int, float],
+    vertex_weight_dict: dict[int, float] | None,
     num_trials: int,
     marginal_gain_error: float,
 ) -> tuple[list[float], list[int]]:
@@ -454,11 +454,17 @@ def community_im_runner(
         graph, filter_edge=lambda u, v: rev_partition_dict[u] == rev_partition_dict[v]
     )
 
-    diffusion_degree_time_taken, vertex_weight_dict = (
-        compute_community_aware_diffusion_degrees(
-            graph, partition_method, rev_partition_dict
+    # Compute diffusion degree heuristic if necessary
+
+    if use_diffusion_degree:
+        diffusion_degree_time_taken, vertex_weight_dict = (
+            compute_community_aware_diffusion_degrees(
+                graph, partition_method, rev_partition_dict
+            )
         )
-    )
+    else:
+        diffusion_degree_time_taken = 0.0
+        vertex_weight_dict = None
 
     # Now that we have the dict with weights, do influence max using these weights on each
     # community separately.
