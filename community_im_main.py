@@ -28,6 +28,7 @@ PartitionMethod = t.Literal["RBConfigurationVertexPartition", "LabelPropagation"
 
 CACHE_FILE_NAME = "cache.db"
 RESULT_FILE_NAME = "benchmark_result.json"
+RANDOM_SEED_DEFAULT = 12345
 
 
 @dataclass
@@ -109,7 +110,7 @@ def get_partition(
     partition_method: PartitionMethod,
     resolution_parameter: float | None,
     *,
-    seed: int = 12345,
+    random_seed: int = 12345,
 ) -> tuple[float, DictPartition, dict[int, int], float]:
     """ """
     partition_name = f"{graph.name}_{graph.weighting_scheme}_{partition_method}_{resolution_parameter}"
@@ -125,7 +126,7 @@ def get_partition(
 
                 partition = list(
                     nx.community.fast_label_propagation_communities(
-                        graph, weight="activation_prob", seed=seed
+                        graph, weight="activation_prob", seed=random_seed
                     )
                 )
             else:
@@ -142,7 +143,7 @@ def get_partition(
                     partition_method_class,
                     weights="activation_prob",
                     resolution_parameter=resolution_parameter,
-                    seed=seed,
+                    seed=random_seed,
                 )
 
             end_time = time.perf_counter()
@@ -465,9 +466,11 @@ def community_im_runner(
     resolution_parameter: float | None,
     use_diffusion_degree: bool,
     num_trials: int,
+    *,
+    random_seed: int = 12345,
 ) -> ExperimentResult:
     partition_time_taken, parts, rev_partition_dict, modularity = get_partition(
-        graph, partition_method, resolution_parameter
+        graph, partition_method, resolution_parameter, random_seed=random_seed
     )
 
     # Next, remove inter-community edges from graph
@@ -589,11 +592,12 @@ def main() -> None:
     graphs = it.product(settings_dict["graphs"], settings_dict["weighting_schemes"])
     budgets = sorted(settings_dict["budgets"])
     max_budget = budgets[-1]
+    random_seed = settings_dict.get("random_seed", RANDOM_SEED_DEFAULT)
 
     skip_celf = settings_dict.get("skip_celf", False)
 
     for graph_name, weighting_scheme in graphs:
-        graph = dm.get_graph(graph_name, weighting_scheme)
+        graph = dm.get_graph(graph_name, weighting_scheme, random_seed=random_seed)
         graph_benchmark_results: list[ExperimentResult] = []
 
         for marginal_gain_error, num_samples in it.product(
@@ -623,6 +627,7 @@ def main() -> None:
                     resolution_parameter,
                     use_diffusion_degree,
                     num_samples,
+                    random_seed=random_seed,
                 )
 
                 graph_benchmark_results.append(community_im_result)
