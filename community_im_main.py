@@ -73,54 +73,52 @@ def reverse_partition(
 
 
 def compute_community_aware_diffusion_degrees(
-    graph_no_community_edges: nx.DiGraph,
+    graph: nx.DiGraph,
+    rev_partition_dict: dict[int, int],
 ) -> dict[int, float]:
     """
     TODO add a test case for very simple double check of this calculation.
     """
 
     with shelve.open(CACHE_FILE_NAME, writeback=True) as cache:
-        if graph_no_community_edges.name in cache["graph_diffusion_degree_offsets"]:
-            return cache["graph_diffusion_degree_offsets"][
-                graph_no_community_edges.name
-            ]
+        if graph.name in cache["graph_diffusion_degree_offsets"]:
+            return cache["graph_diffusion_degree_offsets"][graph.name]
 
         print("Computing community aware diffusion degree")
 
         res_dict = {}
 
-        for start_node in graph_no_community_edges:
+        for start_node in graph:
+            modified_graph = nx.subgraph_view(
+                graph,
+                filter_node=lambda x: x == start_node
+                or rev_partition_dict[x] != rev_partition_dict[start_node],
+            )
+
             route_proba_dict: defaultdict[int, int] = defaultdict(lambda: 1)
 
-            for neighbor in graph_no_community_edges.neighbors(start_node):
+            for neighbor in modified_graph.neighbors(start_node):
                 # Add to probability
                 route_proba_dict[neighbor] *= (
-                    1.0
-                    - graph_no_community_edges[start_node][neighbor]["activation_prob"]
+                    1.0 - modified_graph[start_node][neighbor]["activation_prob"]
                 )
 
-                for second_neighbor in graph_no_community_edges.neighbors(neighbor):
+                for second_neighbor in modified_graph.neighbors(neighbor):
                     if (
                         second_neighbor == start_node
                     ):  # Avoid going back to the start node
                         continue
 
                     route_proba_dict[second_neighbor] *= 1.0 - (
-                        graph_no_community_edges[start_node][neighbor][
-                            "activation_prob"
-                        ]
-                        * graph_no_community_edges[neighbor][second_neighbor][
-                            "activation_prob"
-                        ]
+                        modified_graph[start_node][neighbor]["activation_prob"]
+                        * modified_graph[neighbor][second_neighbor]["activation_prob"]
                     )
 
             res_dict[start_node] = sum(
                 1.0 - route_prod for route_prod in route_proba_dict.values()
             )
 
-        cache["graph_diffusion_degree_offsets"][graph_no_community_edges.name] = (
-            res_dict
-        )
+        cache["graph_diffusion_degree_offsets"][graph.name] = res_dict
 
         return res_dict
 
@@ -359,7 +357,7 @@ def run_community_im(
     )
 
     vertex_weight_dict = compute_community_aware_diffusion_degrees(
-        graph_no_community_edges
+        graph, rev_partition_dict
     )
 
     # Now that we have the dict with weights, do influence max using these weights on each
@@ -387,7 +385,7 @@ def main() -> None:
     # First, generate graph and partition
     # TODO this is the stuff to change when running later experiments
     graph = dm.get_graph("amazon")
-    budget = 100
+    budget = 10_000
 
     start = time.perf_counter()
     best_seed_set = run_community_im(graph, budget)
