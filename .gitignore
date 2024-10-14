@@ -48,3 +48,4 @@ lim_code_release/allocation/*
 
 *.db.*
 benchmark_result.json
+*.db

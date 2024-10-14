@@ -1,9 +1,10 @@
 {
-  "graphs": ["deezer", "dblp"],
-  "weighting_schemes": ["weighted_cascade", "uniform"],
+  "graphs": ["deezer"],
+  "weighting_schemes": ["trivalency", "weighted_cascade"],
   "partitioning_algorithms": ["ModularityVertexPartition"],
   "marginal_gain_errors": [0.0],
   "use_diffusion_degree": [false, true],
   "budgets": [5, 10, 20, 400],
-  "num_samples": [1000]
+  "num_samples": [1000],
+  "skip_celf": false
 }

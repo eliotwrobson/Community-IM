@@ -23,8 +23,9 @@ from cynetdiff.utils import networkx_to_ic_model
 import dataset_manager as dm
 
 DictPartition = dict[int, list[int]]
+# TODO add resolution parameter
 PartitionMethod = t.Literal[
-    "ModularityVertexPartition", "RBConfigurationVertexPartition"
+    "ModularityVertexPartition", "RBConfigurationVertexPartition", "LabelPropagation"
 ]
 
 CACHE_FILE_NAME = "cache.db"
@@ -45,6 +46,7 @@ class ExperimentResult:
     seeds: list[int]
     modularity: float | None = None
     num_communities: int | None = None
+    num_edges_removed: int = 0
 
 
 def initialize_cache() -> None:
@@ -89,6 +91,7 @@ def write_benchmark_result(
         "modularity": result.modularity,
         "partition method": result.partition_method,
         "num communities": result.num_communities,
+        "num edges removed": result.num_edges_removed,
     }
 
     data["results"].append(result_dict)
@@ -108,25 +111,33 @@ def get_partition(
 
     with shelve.open(CACHE_FILE_NAME, writeback=True) as cache:
         if partition_name not in cache["partitions"]:
-            print("Computing partition")
+            print(f"Computing partition {partition_method}")
 
             start_time = time.perf_counter()
-            igraph_graph = ig.Graph.from_networkx(graph)
 
-            # https://leidenalg.readthedocs.io/en/latest/reference.html
-            if partition_method == "ModularityVertexPartition":
-                partition_method_class = la.ModularityVertexPartition
-            elif partition_method == "RBConfigurationVertexPartition":
-                partition_method_class = la.RBConfigurationVertexPartition
+            if partition_method == "LabelPropagation":
+                partition = list(
+                    nx.community.fast_label_propagation_communities(
+                        graph, weight="activation_prob", seed=seed
+                    )
+                )
             else:
-                assert_never(partition_method)
+                igraph_graph = ig.Graph.from_networkx(graph)
 
-            partition = la.find_partition(
-                igraph_graph,
-                partition_method_class,
-                weights="activation_prob",
-                seed=seed,
-            )
+                # https://leidenalg.readthedocs.io/en/latest/reference.html
+                if partition_method == "ModularityVertexPartition":
+                    partition_method_class = la.ModularityVertexPartition
+                elif partition_method == "RBConfigurationVertexPartition":
+                    partition_method_class = la.RBConfigurationVertexPartition
+                else:
+                    assert_never(partition_method)
+
+                partition = la.find_partition(
+                    igraph_graph,
+                    partition_method_class,
+                    weights="activation_prob",
+                    seed=seed,
+                )
 
             end_time = time.perf_counter()
 
@@ -360,7 +371,7 @@ def celf(
 
             # My own optimization: Add granularity argument to ignore
             # TODO double check this works as expected
-            if new_mg - marginal_gain_error <= -marg_gain[0][0]:
+            if not marg_gain or new_mg - marginal_gain_error <= -marg_gain[0][0]:
                 break
             else:
                 heapq.heappush(marg_gain, (new_mg, current_node))
@@ -493,6 +504,8 @@ def community_im_runner(
         seeds=seeds,
         modularity=modularity,
         num_communities=len(parts),
+        num_edges_removed=graph.number_of_edges()
+        - graph_only_community_edges.number_of_edges(),
     )
 
 
@@ -564,6 +577,8 @@ def main() -> None:
     budgets = sorted(settings_dict["budgets"])
     max_budget = budgets[-1]
 
+    skip_celf = settings_dict.get("skip_celf", False)
+
     for graph_name, weighting_scheme in graphs:
         graph = dm.get_graph(graph_name, weighting_scheme)
         graph_benchmark_results: list[ExperimentResult] = []
@@ -571,18 +586,19 @@ def main() -> None:
         for marginal_gain_error, num_samples in it.product(
             settings_dict["marginal_gain_errors"], settings_dict["num_samples"]
         ):
-            print(f"Running celfpp on {graph_name} with budget {max_budget}.")
-            model, celf_result = celf_pp_runner(
-                graph, max_budget, marginal_gain_error, num_samples
-            )
+            if not skip_celf:
+                print(f"Running celfpp on {graph_name} with budget {max_budget}.")
+                model, celf_result = celf_pp_runner(
+                    graph, max_budget, marginal_gain_error, num_samples
+                )
 
-            graph_benchmark_results.append(celf_result)
+                graph_benchmark_results.append(celf_result)
 
             for use_diffusion_degree, partitioning_algorithm in it.product(
                 settings_dict["use_diffusion_degree"],
                 settings_dict["partitioning_algorithms"],
             ):
-                print(f"Running celfpp on {graph_name} with budget {max_budget}.")
+                print(f"Running community-im on {graph_name} with budget {max_budget}.")
                 community_im_result = community_im_runner(
                     graph,
                     max_budget,
@@ -593,6 +609,9 @@ def main() -> None:
                 )
 
                 graph_benchmark_results.append(community_im_result)
+
+        if skip_celf:
+            model, _ = networkx_to_ic_model(graph)
 
         print("Evaluating quality of seed sets.")
         length = len(graph_benchmark_results) * len(budgets)
