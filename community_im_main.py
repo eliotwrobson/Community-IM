@@ -61,9 +61,6 @@ def initialize_cache() -> None:
 def write_benchmark_result(
     result: ExperimentResult, budget: int, influence: float
 ) -> None:
-    print("seeds: ", result.seeds)
-    print("times: ", len(result.times_taken))
-    print("budget: ", budget - 1)
     time_taken = result.times_taken[budget - 1] + result.partition_time_taken
 
     if result.use_diffusion_degree:
