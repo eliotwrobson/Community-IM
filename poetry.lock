@@ -390,6 +390,17 @@ all = ["graphblas-algorithms[test]"]
 test = ["networkx (>=3.0)", "pytest", "scipy (>=1.9)", "setuptools", "tomli"]
 
 [[package]]
+name = "heapdict"
+version = "1.0.1"
+description = "a heap with decrease-key and increase-key operations"
+optional = false
+python-versions = "*"
+files = [
+    {file = "HeapDict-1.0.1-py3-none-any.whl", hash = "sha256:6065f90933ab1bb7e50db403b90cab653c853690c5992e69294c2de2b253fc92"},
+    {file = "HeapDict-1.0.1.tar.gz", hash = "sha256:8495f57b3e03d8e46d5f1b2cc62ca881aca392fd5cc048dc0aa2e1a6d23ecdb6"},
+]
+
+[[package]]
 name = "idna"
 version = "3.7"
 description = "Internationalized Domain Names in Applications (IDNA)"
@@ -1610,4 +1621,4 @@ tests = ["pytest", "pytest-cov"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "f39f98d56c214566849355755748acfbcc5d68ed30494bd474dc9b7e93bb1153"
+content-hash = "5cddd93de31b760bdc725c1b1ef895461188b17990c902739cc6c945cca1b868"
