@@ -1,5 +1,5 @@
 {
-  "graphs": ["amazon"],
+  "graphs": ["facebook"],
   "weighting_schemes": ["trivalency"],
   "partitioning_methods": [
     {

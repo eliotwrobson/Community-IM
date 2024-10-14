@@ -19,6 +19,7 @@ import networkx as nx
 import tqdm
 from cynetdiff.models import DiffusionModel
 from cynetdiff.utils import networkx_to_ic_model
+from heapdict import heapdict
 
 import dataset_manager as dm
 
@@ -40,8 +41,8 @@ class ExperimentResult:
     num_nodes: int
     num_edges: int
     weighting_scheme: str
-    marginal_gain_error: float
     seeds: list[int]
+    marginal_gain_error: float | None = None
     use_diffusion_degree: bool = False
     partition_method: PartitionMethod | None = None
     partition_time_taken: float = 0.0
@@ -612,7 +613,58 @@ def degree_runner(
         num_nodes=graph.number_of_nodes(),
         num_edges=graph.number_of_edges(),
         weighting_scheme=graph.weighting_scheme,
-        marginal_gain_error=0.0,
+        seeds=seeds,
+    )
+
+
+def degree_discount_runner(
+    graph: nx.DiGraph,
+    budget: int,
+) -> ExperimentResult:
+    start_time = time.perf_counter()
+
+    # Initialize data structures
+    t_dict: defaultdict[int, int] = defaultdict(int)
+    best_node_dict = heapdict()
+
+    for node, out_degree in graph.out_degree():
+        best_node_dict[node] = -out_degree
+
+    seeds = []
+    times_taken = []
+
+    for i in range(budget):
+        node, _ = best_node_dict.popitem()
+        end_time = time.perf_counter()
+
+        seeds.append(node)
+        times_taken.append(end_time - start_time)
+
+        if i == budget - 1:
+            break
+
+        for v in graph.neighbors(node):
+            if v not in best_node_dict:
+                continue
+
+            t_dict[v] += 1
+
+            d_v = graph.out_degree(v)
+            t_v = t_dict[v]
+
+            best_node_dict[v] = (
+                d_v - 2 * t_v - (d_v - t_v) * t_v * graph[node][v]["activation_prob"]
+            )
+
+    assert len(seeds) == budget
+
+    return ExperimentResult(
+        algorithm="degree-discount",
+        times_taken=times_taken,
+        graph=graph.name,
+        num_nodes=graph.number_of_nodes(),
+        num_edges=graph.number_of_edges(),
+        weighting_scheme=graph.weighting_scheme,
         seeds=seeds,
     )
 
@@ -641,11 +693,14 @@ def main() -> None:
     for graph_name, weighting_scheme in graphs:
         graph = dm.get_graph(graph_name, weighting_scheme, random_seed=random_seed)
 
-        print(f"Running degree on {graph_name} with budget {max_budget}.")
+        print(
+            f"Running degree and degree discount on {graph_name} with budget {max_budget}."
+        )
 
         # Start with degree discount baseline because it's easy to compute.
         graph_benchmark_results: list[ExperimentResult] = [
-            degree_runner(graph, max_budget)
+            degree_runner(graph, max_budget),
+            degree_discount_runner(graph, max_budget),
         ]
 
         for marginal_gain_error, num_samples in it.product(
