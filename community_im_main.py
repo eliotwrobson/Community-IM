@@ -588,12 +588,6 @@ def main() -> None:
 
             write_benchmark_result(result, budget, influence)
 
-    # print(result)
-    # influence = evaluate_diffusion(model, result.seeds)
-    # print(influence)
-    # influence = evaluate_diffusion(model, celf_result.seeds)
-    # print(influence)
-
 
 if __name__ == "__main__":
     main()
