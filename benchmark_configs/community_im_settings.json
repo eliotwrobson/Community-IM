@@ -1,10 +1,18 @@
 {
   "graphs": ["deezer"],
   "weighting_schemes": ["trivalency", "weighted_cascade"],
-  "partitioning_algorithms": ["ModularityVertexPartition"],
+  "partitioning_methods": [
+    {
+      "partitioning_algorithm": "RBConfigurationVertexPartition",
+      "resolution_parameter": 1.0
+    },
+    {
+      "partitioning_algorithm": "RBConfigurationVertexPartition",
+      "resolution_parameter": 0.5
+    }
+  ],
   "marginal_gain_errors": [0.0],
   "use_diffusion_degree": [false, true],
-  "budgets": [5, 10, 20, 400],
-  "num_samples": [1000],
-  "skip_celf": false
+  "budgets": [5, 20, 100, 200, 400],
+  "num_samples": [1000]
 }

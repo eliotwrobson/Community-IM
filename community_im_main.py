@@ -24,9 +24,7 @@ import dataset_manager as dm
 
 DictPartition = dict[int, list[int]]
 # TODO add resolution parameter
-PartitionMethod = t.Literal[
-    "ModularityVertexPartition", "RBConfigurationVertexPartition", "LabelPropagation"
-]
+PartitionMethod = t.Literal["RBConfigurationVertexPartition", "LabelPropagation"]
 
 CACHE_FILE_NAME = "cache.db"
 RESULT_FILE_NAME = "benchmark_result.json"
@@ -39,6 +37,8 @@ class ExperimentResult:
     partition_time_taken: float
     diffusion_degree_time_taken: float
     graph: str
+    num_nodes: int
+    num_edges: int
     weighting_scheme: str
     marginal_gain_error: float
     partition_method: PartitionMethod | None
@@ -47,6 +47,7 @@ class ExperimentResult:
     modularity: float | None = None
     num_communities: int | None = None
     num_edges_removed: int = 0
+    resolution_parameter: float | None = None
 
 
 def initialize_cache() -> None:
@@ -81,6 +82,8 @@ def write_benchmark_result(
 
     result_dict = {
         "graph": result.graph,
+        "num nodes": result.num_nodes,
+        "num edges": result.num_edges,
         "algorithm": result.algorithm,
         "time taken": time_taken,
         "influence": influence,
@@ -90,6 +93,7 @@ def write_benchmark_result(
         "marginal gain error": result.marginal_gain_error,
         "modularity": result.modularity,
         "partition method": result.partition_method,
+        "resolution parameter": result.resolution_parameter,
         "num communities": result.num_communities,
         "num edges removed": result.num_edges_removed,
     }
@@ -101,13 +105,14 @@ def write_benchmark_result(
 
 
 def get_partition(
-    graph: nx.DiGraph, partition_method: PartitionMethod, *, seed: int = 12345
+    graph: nx.DiGraph,
+    partition_method: PartitionMethod,
+    resolution_parameter: float | None,
+    *,
+    seed: int = 12345,
 ) -> tuple[float, DictPartition, dict[int, int], float]:
-    """
-    TODO add a way to try different clustering methods
-    TODO add the partitioning method to the graph name
-    """
-    partition_name = f"{graph.name}_{graph.weighting_scheme}_{partition_method}"
+    """ """
+    partition_name = f"{graph.name}_{graph.weighting_scheme}_{partition_method}_{resolution_parameter}"
 
     with shelve.open(CACHE_FILE_NAME, writeback=True) as cache:
         if partition_name not in cache["partitions"]:
@@ -116,6 +121,8 @@ def get_partition(
             start_time = time.perf_counter()
 
             if partition_method == "LabelPropagation":
+                assert resolution_parameter is None
+
                 partition = list(
                     nx.community.fast_label_propagation_communities(
                         graph, weight="activation_prob", seed=seed
@@ -125,9 +132,7 @@ def get_partition(
                 igraph_graph = ig.Graph.from_networkx(graph)
 
                 # https://leidenalg.readthedocs.io/en/latest/reference.html
-                if partition_method == "ModularityVertexPartition":
-                    partition_method_class = la.ModularityVertexPartition
-                elif partition_method == "RBConfigurationVertexPartition":
+                if partition_method == "RBConfigurationVertexPartition":
                     partition_method_class = la.RBConfigurationVertexPartition
                 else:
                     assert_never(partition_method)
@@ -136,6 +141,7 @@ def get_partition(
                     igraph_graph,
                     partition_method_class,
                     weights="activation_prob",
+                    resolution_parameter=resolution_parameter,
                     seed=seed,
                 )
 
@@ -455,11 +461,12 @@ def community_im_runner(
     budget: int,
     marginal_gain_error: float,
     partition_method: PartitionMethod,
+    resolution_parameter: float | None,
     use_diffusion_degree: bool,
     num_trials: int,
 ) -> ExperimentResult:
     partition_time_taken, parts, rev_partition_dict, modularity = get_partition(
-        graph, partition_method
+        graph, partition_method, resolution_parameter
     )
 
     # Next, remove inter-community edges from graph
@@ -497,6 +504,8 @@ def community_im_runner(
         partition_time_taken=partition_time_taken,
         diffusion_degree_time_taken=diffusion_degree_time_taken,
         graph=graph.name,
+        num_nodes=graph.number_of_nodes(),
+        num_edges=graph.number_of_edges(),
         weighting_scheme=graph.weighting_scheme,
         marginal_gain_error=marginal_gain_error,
         partition_method=partition_method,
@@ -506,6 +515,7 @@ def community_im_runner(
         num_communities=len(parts),
         num_edges_removed=graph.number_of_edges()
         - graph_only_community_edges.number_of_edges(),
+        resolution_parameter=resolution_parameter,
     )
 
 
@@ -550,6 +560,8 @@ def celf_pp_runner(
             partition_time_taken=0.0,
             diffusion_degree_time_taken=0.0,
             graph=graph.name,
+            num_nodes=graph.number_of_nodes(),
+            num_edges=graph.number_of_edges(),
             weighting_scheme=graph.weighting_scheme,
             marginal_gain_error=marginal_gain_error,
             partition_method=None,
@@ -594,16 +606,20 @@ def main() -> None:
 
                 graph_benchmark_results.append(celf_result)
 
-            for use_diffusion_degree, partitioning_algorithm in it.product(
+            for use_diffusion_degree, partitioning_method in it.product(
                 settings_dict["use_diffusion_degree"],
-                settings_dict["partitioning_algorithms"],
+                settings_dict["partitioning_methods"],
             ):
+                partitioning_algorithm = partitioning_method["partitioning_algorithm"]
+                resolution_parameter = partitioning_method.get("resolution_parameter")
+
                 print(f"Running community-im on {graph_name} with budget {max_budget}.")
                 community_im_result = community_im_runner(
                     graph,
                     max_budget,
                     marginal_gain_error,
                     partitioning_algorithm,
+                    resolution_parameter,
                     use_diffusion_degree,
                     num_samples,
                 )
