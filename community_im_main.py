@@ -31,7 +31,7 @@ CACHE_FILE_NAME = "cache.db"
 class ExperimentResult:
     algorithm: str
     budget: int
-    time_taken: float
+    times_taken: list[float]
     partition_time_taken: float
     diffusion_degree_time_taken: float
     graph: str
@@ -39,7 +39,7 @@ class ExperimentResult:
     marginal_gain_error: float
     partition_method: PartitionMethod | None
     use_diffusion_degree: bool
-    seed_set: set[int]
+    seeds: list[int]
 
 
 def initialize_cache() -> None:
@@ -85,32 +85,29 @@ def get_partition(
                 weights="activation_prob",
             )
 
-            result = {i: vertices for i, vertices in enumerate(partition)}
-
             end_time = time.perf_counter()
 
+            # Compute partition and reversal
+            result = {}
+            rev_dict = {}
+
+            for i, part in enumerate(partition):
+                result[i] = part
+
+                for vtx in part:
+                    rev_dict[vtx] = i
+
+            # Assemble into tuple and cache
             res_tup = (
                 end_time - start_time,
                 result,
-                reverse_partition(result),
+                rev_dict,
             )
 
             cache["partitions"][partition_name] = res_tup
 
         print("Reading partition from cache")
         return cache["partitions"][partition_name]
-
-
-def reverse_partition(
-    partition: DictPartition,
-) -> dict[int, int]:
-    res_dict = {}
-
-    for i, part in partition.items():
-        for vtx in part:
-            res_dict[vtx] = i
-
-    return res_dict
 
 
 def compute_community_aware_diffusion_degrees(
@@ -132,7 +129,7 @@ def compute_community_aware_diffusion_degrees(
         start_time = time.perf_counter()
         res_dict = {}
 
-        for start_node in graph:
+        for start_node in tqdm.tqdm(graph, total=graph.number_of_nodes()):
             modified_graph = nx.subgraph_view(
                 graph,
                 filter_node=lambda x: x == start_node
@@ -234,12 +231,6 @@ def compute_marginal_gain(
         if vertex_weight_dict is not None:
             for activated_node in model.get_activated_nodes():
                 new_spread += vertex_weight_dict[activated_node]
-
-    # Check to make sure the program isn't going crazy.
-    # if (new_spread - original_spread) / num_trials < -5:
-    #     print(seeds, new_node)
-    #     print(new_spread, original_spread)
-    #     raise Exception
 
     # Avoid floating point division until the very end.
     return (new_spread - original_spread) / num_trials
@@ -345,7 +336,7 @@ def get_nested_solutions(
     vertex_weight_dict: dict[int, float],
     num_trials: int,
     marginal_gain_error: float,
-) -> list[t.Iterator[tuple[float, int]]]:
+) -> tuple[list[float], list[int]]:
     """
     Given the graph with only community edges (no edges across communities),
     a partition of the vertices in each community, a budget, and a dictionary
@@ -355,6 +346,7 @@ def get_nested_solutions(
     order for each community.
     """
 
+    start_time = time.perf_counter()
     model, _ = networkx_to_ic_model(graph_only_community_edges)
 
     # TODO maybe get rid of the stuff from the small communities?
@@ -370,17 +362,6 @@ def get_nested_solutions(
         for community in partition.values()
     ]
 
-    return marg_gain_lists
-
-
-def assemble_best_seed_set(
-    marg_gain_lists: list[t.Iterator[tuple[float, int]]], budget: int
-) -> list[tuple[float, int]]:
-    """
-    Given a list of iterators to the marginal gains from each community,
-    assemble the best set of nodes according to the given budget.
-    """
-
     # Next, load these into a heap.
     min_heap: list[tuple[tuple[float, int], t.Iterator[tuple[float, int]]]] = []
 
@@ -390,23 +371,27 @@ def assemble_best_seed_set(
             # (value, iterator)
             heapq.heappush(min_heap, (first_element, it))
 
-    result: list[tuple[float, int]] = []
+    seeds: list[int] = []
+    times: list[float] = []
 
     for _ in tqdm.trange(budget):
         if not min_heap:
             break  # Exit early if no more nodes.
 
-        value, it = heapq.heappop(min_heap)
-        result.append(value)
+        (_, node), it = heapq.heappop(min_heap)
+        end_time = time.perf_counter()
+
+        seeds.append(node)
+        times.append(end_time - start_time)
 
         # Get the next element from the iterator
         next_value = next(it, None)
         if next_value is not None:
             heapq.heappush(min_heap, (next_value, it))
 
-    assert len(result) == budget
+    assert len(seeds) == budget
 
-    return result
+    return times, seeds
 
 
 def community_im_runner(
@@ -435,8 +420,7 @@ def community_im_runner(
     # Now that we have the dict with weights, do influence max using these weights on each
     # community separately.
 
-    start = time.perf_counter()
-    nested_solution_list = get_nested_solutions(
+    times_taken, seeds = get_nested_solutions(
         graph_only_community_edges,
         parts,
         budget,
@@ -444,14 +428,11 @@ def community_im_runner(
         num_trials,
         marginal_gain_error,
     )
-    best_marg_gain_set = assemble_best_seed_set(nested_solution_list, budget)
-
-    end = time.perf_counter()
 
     return ExperimentResult(
         algorithm="community-im",
         budget=budget,
-        time_taken=end - start,
+        times_taken=times_taken,
         partition_time_taken=partition_time_taken,
         diffusion_degree_time_taken=diffusion_degree_time_taken,
         graph=graph.name,
@@ -459,7 +440,7 @@ def community_im_runner(
         marginal_gain_error=marginal_gain_error,
         partition_method=partition_method,
         use_diffusion_degree=use_diffusion_degree,
-        seed_set={seed for _, seed in best_marg_gain_set},
+        seeds=seeds,
     )
 
 
@@ -472,27 +453,34 @@ def celf_pp_runner(
     # Now that we have the dict with weights, do influence max using these weights on each
     # community separately.
 
-    start = time.perf_counter()
+    start_time = time.perf_counter()
     model, _ = networkx_to_ic_model(graph)
-    celf_marg_seeds = list(
-        celf(
-            model,
-            budget,
-            list(graph.nodes()),
-            None,
-            num_trials=num_trials,
-            marginal_gain_error=marginal_gain_error,
-            tqdm_budget=True,
-        )
+
+    times_taken = []
+    seeds = []
+
+    celf_iter = celf(
+        model,
+        budget,
+        list(graph.nodes()),
+        None,
+        num_trials=num_trials,
+        marginal_gain_error=marginal_gain_error,
+        tqdm_budget=True,
     )
-    end = time.perf_counter()
+
+    for _, seed in celf_iter:
+        end_time = time.perf_counter()
+
+        seeds.append(seed)
+        times_taken.append(end_time - start_time)
 
     return (
         model,
         ExperimentResult(
             algorithm="celf-pp",
             budget=budget,
-            time_taken=end - start,
+            times_taken=times_taken,
             partition_time_taken=0.0,
             diffusion_degree_time_taken=0.0,
             graph=graph.name,
@@ -500,7 +488,7 @@ def celf_pp_runner(
             marginal_gain_error=marginal_gain_error,
             partition_method=None,
             use_diffusion_degree=False,
-            seed_set={seed for _, seed in celf_marg_seeds},
+            seeds=seeds,
         ),
     )
 
@@ -519,44 +507,19 @@ def main() -> None:
     # First, generate graph and partition
     # TODO this is the stuff to change when running later experiments
     graph = dm.get_graph("deezer")
-    budget = 100
+    budget = 10
 
-    model, celf_result = celf_pp_runner(graph, budget, 0.0, 1_000)
     result = community_im_runner(
         graph, budget, 0.0, "ModularityVertexPartition", True, 1_000
     )
 
+    model, celf_result = celf_pp_runner(graph, budget, 0.0, 1_000)
+
     print(result)
-    influence = evaluate_diffusion(model, result.seed_set)
+    influence = evaluate_diffusion(model, result.seeds)
     print(influence)
-    influence = evaluate_diffusion(model, celf_result.seed_set)
+    influence = evaluate_diffusion(model, celf_result.seeds)
     print(influence)
-
-    # start = time.perf_counter()
-    # best_seed_set = run_community_im(graph, budget)
-    # end = time.perf_counter()
-
-    # print(f"Community IM runtime {end-start}")
-
-    # # Now, evaluate
-    # model, _ = networkx_to_ic_model(graph)
-    # influence = evaluate_diffusion(model, best_seed_set)
-    # print(f"Community IM influence: {influence}")
-
-    # # Compare with CELF
-    # start = time.perf_counter()
-    # celf_marg_seeds = list(
-    #     celf(
-    #         model, budget, list(graph.nodes()), None, num_trials=1_000, tqdm_budget=True
-    #     )
-    # )
-    # end = time.perf_counter()
-    # print(f"CELF runtime {end-start}")
-
-    # celf_seeds = {seed for _, seed in celf_marg_seeds}
-
-    # celf_value = evaluate_diffusion(model, celf_seeds)
-    # print(f"CELF influence {celf_value}")
 
 
 if __name__ == "__main__":
