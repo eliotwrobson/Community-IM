@@ -173,13 +173,14 @@ def get_partition(
 def compute_community_aware_diffusion_degrees(
     graph: nx.DiGraph,
     partition_method: PartitionMethod,
+    resolution_parameter: float | None,
     rev_partition_dict: dict[int, int],
 ) -> tuple[float, dict[int, float]]:
     """
     TODO add a test case for very simple double check of this calculation.
     """
 
-    cache_entry_name = f"{graph.name}_{graph.weighting_scheme}_{partition_method}"
+    cache_entry_name = f"{graph.name}_{graph.weighting_scheme}_{partition_method}_{resolution_parameter}"
 
     with shelve.open(CACHE_FILE_NAME, writeback=True) as cache:
         if cache_entry_name in cache["graph_diffusion_degree_offsets"]:
@@ -479,7 +480,7 @@ def community_im_runner(
     if use_diffusion_degree:
         diffusion_degree_time_taken, vertex_weight_dict = (
             compute_community_aware_diffusion_degrees(
-                graph, partition_method, rev_partition_dict
+                graph, partition_method, resolution_parameter, rev_partition_dict
             )
         )
     else:
