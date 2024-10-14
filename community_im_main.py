@@ -43,6 +43,8 @@ class ExperimentResult:
     partition_method: PartitionMethod | None
     use_diffusion_degree: bool
     seeds: list[int]
+    modularity: int | None = None
+    num_communities: int | None = None
 
 
 def initialize_cache() -> None:
@@ -75,18 +77,19 @@ def write_benchmark_result(
     with open(RESULT_FILE_NAME, "r") as f:
         data = json.load(f)
 
-    data["results"].append(
-        {
-            "graph": result.graph,
-            "algorithm": result.algorithm,
-            "time taken": time_taken,
-            "influence": influence,
-            "budget": budget,
-            "weighting scheme": result.weighting_scheme,
-            "use diffusion degree": result.use_diffusion_degree,
-            "marginal gain error": result.marginal_gain_error,
-        }
-    )
+    result_dict = {
+        "graph": result.graph,
+        "algorithm": result.algorithm,
+        "time taken": time_taken,
+        "influence": influence,
+        "budget": budget,
+        "weighting scheme": result.weighting_scheme,
+        "use diffusion degree": result.use_diffusion_degree,
+        "marginal gain error": result.marginal_gain_error,
+        "modularity": result.modularity,
+    }
+
+    data["results"].append(result_dict)
 
     with open(RESULT_FILE_NAME, "w") as f:
         json.dump(data, f, indent=4)
@@ -94,7 +97,7 @@ def write_benchmark_result(
 
 def get_partition(
     graph: nx.DiGraph, partition_method: PartitionMethod, *, seed: int = 12345
-) -> tuple[float, DictPartition, dict[int, int]]:
+) -> tuple[float, DictPartition, dict[int, int], float]:
     """
     TODO add a way to try different clustering methods
     TODO add the partitioning method to the graph name
@@ -140,6 +143,7 @@ def get_partition(
                 end_time - start_time,
                 result,
                 rev_dict,
+                nx.community.modularity(graph, partition),
             )
 
             cache["partitions"][partition_name] = res_tup
@@ -436,7 +440,7 @@ def community_im_runner(
     use_diffusion_degree: bool,
     num_trials: int,
 ) -> ExperimentResult:
-    partition_time_taken, parts, rev_partition_dict = get_partition(
+    partition_time_taken, parts, rev_partition_dict, modularity = get_partition(
         graph, partition_method
     )
 
@@ -474,6 +478,8 @@ def community_im_runner(
         partition_method=partition_method,
         use_diffusion_degree=use_diffusion_degree,
         seeds=seeds,
+        modularity=modularity,
+        num_communities=len(parts),
     )
 
 
