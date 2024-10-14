@@ -1,10 +1,14 @@
 {
-  "graphs": ["deezer"],
-  "weighting_schemes": ["trivalency"],
+  "graphs": ["amazon"],
+  "weighting_schemes": ["trivalency", "weighted_cascade"],
   "partitioning_methods": [
     {
       "partitioning_algorithm": "RBConfigurationVertexPartition",
       "resolution_parameter": 1.0
+    },
+    {
+      "partitioning_algorithm": "RBConfigurationVertexPartition",
+      "resolution_parameter": 2.0
     }
   ],
   "marginal_gain_errors": [0.0],
