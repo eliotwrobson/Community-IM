@@ -3,6 +3,9 @@ Main file for running community IM experiments
 """
 
 import heapq
+import itertools as it
+import json
+import os
 import shelve
 import time
 import typing as t
@@ -25,12 +28,12 @@ PartitionMethod = t.Literal[
 ]
 
 CACHE_FILE_NAME = "cache.db"
+RESULT_FILE_NAME = "benchmark_result.json"
 
 
 @dataclass
 class ExperimentResult:
     algorithm: str
-    budget: int
     times_taken: list[float]
     partition_time_taken: float
     diffusion_degree_time_taken: float
@@ -53,6 +56,40 @@ def initialize_cache() -> None:
         for key in db_keys:
             if key not in cache:
                 cache[key] = {}
+
+
+def write_benchmark_result(
+    result: ExperimentResult, budget: int, influence: float
+) -> None:
+    time_taken = (
+        sum(result.times_taken[:budget])
+        + result.partition_time_taken
+        + result.diffusion_degree_time_taken
+    )
+    # Create file if it doesn't already exist
+    if not os.path.exists(RESULT_FILE_NAME):
+        with open(RESULT_FILE_NAME, "w") as f:
+            json.dump({"results": []}, f)
+
+    # Read file and append results
+    with open(RESULT_FILE_NAME, "r") as f:
+        data = json.load(f)
+
+    data["results"].append(
+        {
+            "graph": result.graph,
+            "algorithm": result.algorithm,
+            "time taken": time_taken,
+            "influence": influence,
+            "budget": budget,
+            "weighting scheme": result.weighting_scheme,
+            "use diffusion degree": result.use_diffusion_degree,
+            "marginal gain error": result.marginal_gain_error,
+        }
+    )
+
+    with open(RESULT_FILE_NAME, "w") as f:
+        json.dump(data, f)
 
 
 def get_partition(
@@ -365,11 +402,11 @@ def get_nested_solutions(
     # Next, load these into a heap.
     min_heap: list[tuple[tuple[float, int], t.Iterator[tuple[float, int]]]] = []
 
-    for it in tqdm.tqdm(marg_gain_lists):
-        first_element = next(it, None)
+    for iterable in tqdm.tqdm(marg_gain_lists):
+        first_element = next(iterable, None)
         if first_element is not None:
             # (value, iterator)
-            heapq.heappush(min_heap, (first_element, it))
+            heapq.heappush(min_heap, (first_element, iterable))
 
     seeds: list[int] = []
     times: list[float] = []
@@ -378,16 +415,16 @@ def get_nested_solutions(
         if not min_heap:
             break  # Exit early if no more nodes.
 
-        (_, node), it = heapq.heappop(min_heap)
+        (_, node), iterable = heapq.heappop(min_heap)
         end_time = time.perf_counter()
 
         seeds.append(node)
         times.append(end_time - start_time)
 
         # Get the next element from the iterator
-        next_value = next(it, None)
+        next_value = next(iterable, None)
         if next_value is not None:
-            heapq.heappush(min_heap, (next_value, it))
+            heapq.heappush(min_heap, (next_value, iterable))
 
     assert len(seeds) == budget
 
@@ -504,22 +541,52 @@ def main() -> None:
 
     initialize_cache()
 
-    # First, generate graph and partition
-    # TODO this is the stuff to change when running later experiments
-    graph = dm.get_graph("deezer")
-    budget = 10
+    with open("benchmark_configs/community_im_settings.json") as f:
+        settings_dict = json.load(f)
 
-    result = community_im_runner(
-        graph, budget, 0.0, "ModularityVertexPartition", True, 1_000
-    )
+    graphs = it.product(settings_dict["graphs"], settings_dict["weighting_schemes"])
+    budgets = sorted(settings_dict["budgets"])
+    max_budget = budgets[-1]
 
-    model, celf_result = celf_pp_runner(graph, budget, 0.0, 1_000)
+    for graph_name, weighting_scheme in graphs:
+        graph = dm.get_graph(graph_name, weighting_scheme)
+        graph_benchmark_results: list[ExperimentResult] = []
 
-    print(result)
-    influence = evaluate_diffusion(model, result.seeds)
-    print(influence)
-    influence = evaluate_diffusion(model, celf_result.seeds)
-    print(influence)
+        for marginal_gain_error, num_samples in it.product(
+            settings_dict["marginal_gain_errors"], settings_dict["num_samples"]
+        ):
+            model, celf_result = celf_pp_runner(
+                graph, max_budget, marginal_gain_error, num_samples
+            )
+
+            graph_benchmark_results.append(celf_result)
+
+            for use_diffusion_degree, partitioning_algorithm in it.product(
+                settings_dict["use_diffusion_degree"],
+                settings_dict["partitioning_algorithms"],
+            ):
+                community_im_result = community_im_runner(
+                    graph,
+                    max_budget,
+                    marginal_gain_error,
+                    partitioning_algorithm,
+                    use_diffusion_degree,
+                    num_samples,
+                )
+
+                graph_benchmark_results.append(community_im_result)
+
+        for result, budget in it.product(graph_benchmark_results, budgets):
+            seeds = result.seeds[:budget]
+            influence = evaluate_diffusion(model, seeds)
+
+            write_benchmark_result(result, budget, influence)
+
+    # print(result)
+    # influence = evaluate_diffusion(model, result.seeds)
+    # print(influence)
+    # influence = evaluate_diffusion(model, celf_result.seeds)
+    # print(influence)
 
 
 if __name__ == "__main__":
