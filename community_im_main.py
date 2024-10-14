@@ -115,13 +115,14 @@ def reverse_partition(
 
 def compute_community_aware_diffusion_degrees(
     graph: nx.DiGraph,
+    partition_method: PartitionMethod,
     rev_partition_dict: dict[int, int],
 ) -> tuple[float, dict[int, float]]:
     """
     TODO add a test case for very simple double check of this calculation.
     """
 
-    cache_entry_name = f"{graph.name}_{graph.weighting_scheme}"
+    cache_entry_name = f"{graph.name}_{graph.weighting_scheme}_{partition_method}"
 
     with shelve.open(CACHE_FILE_NAME, writeback=True) as cache:
         if cache_entry_name in cache["graph_diffusion_degree_offsets"]:
@@ -426,7 +427,9 @@ def community_im_runner(
     )
 
     diffusion_degree_time_taken, vertex_weight_dict = (
-        compute_community_aware_diffusion_degrees(graph, rev_partition_dict)
+        compute_community_aware_diffusion_degrees(
+            graph, partition_method, rev_partition_dict
+        )
     )
 
     # Now that we have the dict with weights, do influence max using these weights on each
@@ -497,7 +500,7 @@ def celf_pp_runner(
             marginal_gain_error=marginal_gain_error,
             partition_method=None,
             use_diffusion_degree=False,
-            seed_set=celf_marg_seeds,
+            seed_set={seed for _, seed in celf_marg_seeds},
         ),
     )
 
