@@ -1,9 +1,9 @@
 {
-  "graphs": ["deezer"],
-  "weighting_schemes": ["uniform"],
+  "graphs": ["wikipedia"],
+  "weighting_schemes": ["weighted_cascade"],
   "partitioning_algorithms": ["ModularityVertexPartition"],
   "marginal_gain_errors": [0.0],
   "use_diffusion_degree": [false, true],
-  "budgets": [10, 100],
+  "budgets": [10, 20],
   "num_samples": [1000]
 }

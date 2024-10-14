@@ -89,7 +89,7 @@ def write_benchmark_result(
     )
 
     with open(RESULT_FILE_NAME, "w") as f:
-        json.dump(data, f)
+        json.dump(data, f, indent=4)
 
 
 def get_partition(
@@ -209,8 +209,7 @@ def evaluate_diffusion(
 
     total = 0
 
-    print("Evaluating quality of diffusion")
-    for _ in tqdm.trange(num_samples):
+    for _ in tqdm.trange(num_samples, leave=False):
         # Resetting the model doesn't change the initial seed set used.
         model.reset_model()
         model.advance_until_completion()
@@ -468,7 +467,6 @@ def community_im_runner(
 
     return ExperimentResult(
         algorithm="community-im",
-        budget=budget,
         times_taken=times_taken,
         partition_time_taken=partition_time_taken,
         diffusion_degree_time_taken=diffusion_degree_time_taken,
@@ -516,7 +514,6 @@ def celf_pp_runner(
         model,
         ExperimentResult(
             algorithm="celf-pp",
-            budget=budget,
             times_taken=times_taken,
             partition_time_taken=0.0,
             diffusion_degree_time_taken=0.0,
@@ -555,6 +552,7 @@ def main() -> None:
         for marginal_gain_error, num_samples in it.product(
             settings_dict["marginal_gain_errors"], settings_dict["num_samples"]
         ):
+            print(f"Running celfpp on {graph_name} with budget {max_budget}.")
             model, celf_result = celf_pp_runner(
                 graph, max_budget, marginal_gain_error, num_samples
             )
@@ -565,6 +563,7 @@ def main() -> None:
                 settings_dict["use_diffusion_degree"],
                 settings_dict["partitioning_algorithms"],
             ):
+                print(f"Running celfpp on {graph_name} with budget {max_budget}.")
                 community_im_result = community_im_runner(
                     graph,
                     max_budget,
@@ -576,7 +575,8 @@ def main() -> None:
 
                 graph_benchmark_results.append(community_im_result)
 
-        for result, budget in it.product(graph_benchmark_results, budgets):
+        print("Evaluating quality of seed sets.")
+        for result, budget in tqdm.tqdm(it.product(graph_benchmark_results, budgets)):
             seeds = result.seeds[:budget]
             influence = evaluate_diffusion(model, seeds)
 

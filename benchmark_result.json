@@ -1,0 +1,124 @@
+{
+    "results": [
+        {
+            "graph": "deezer",
+            "algorithm": "celf-pp",
+            "time taken": 654.6393668000237,
+            "influence": 825.9722,
+            "budget": 10,
+            "weighting scheme": "weighted_cascade",
+            "use diffusion degree": false,
+            "marginal gain error": 0.0
+        },
+        {
+            "graph": "deezer",
+            "algorithm": "celf-pp",
+            "time taken": 1295.868781200028,
+            "influence": 1256.8814,
+            "budget": 20,
+            "weighting scheme": "weighted_cascade",
+            "use diffusion degree": false,
+            "marginal gain error": 0.0
+        },
+        {
+            "graph": "deezer",
+            "algorithm": "community-im",
+            "time taken": 575.3821519000048,
+            "influence": 747.1393,
+            "budget": 10,
+            "weighting scheme": "weighted_cascade",
+            "use diffusion degree": false,
+            "marginal gain error": 0.0
+        },
+        {
+            "graph": "deezer",
+            "algorithm": "community-im",
+            "time taken": 1153.2430664999993,
+            "influence": 1190.1657,
+            "budget": 20,
+            "weighting scheme": "weighted_cascade",
+            "use diffusion degree": false,
+            "marginal gain error": 0.0
+        },
+        {
+            "graph": "deezer",
+            "algorithm": "community-im",
+            "time taken": 574.5614034000901,
+            "influence": 767.9934,
+            "budget": 10,
+            "weighting scheme": "weighted_cascade",
+            "use diffusion degree": true,
+            "marginal gain error": 0.0
+        },
+        {
+            "graph": "deezer",
+            "algorithm": "community-im",
+            "time taken": 1152.3503539001977,
+            "influence": 1183.6038,
+            "budget": 20,
+            "weighting scheme": "weighted_cascade",
+            "use diffusion degree": true,
+            "marginal gain error": 0.0
+        },
+        {
+            "graph": "wikipedia",
+            "algorithm": "celf-pp",
+            "time taken": 982.8925658000226,
+            "influence": 1326.7865,
+            "budget": 10,
+            "weighting scheme": "weighted_cascade",
+            "use diffusion degree": false,
+            "marginal gain error": 0.0
+        },
+        {
+            "graph": "wikipedia",
+            "algorithm": "celf-pp",
+            "time taken": 2094.8191837000195,
+            "influence": 1730.7939,
+            "budget": 20,
+            "weighting scheme": "weighted_cascade",
+            "use diffusion degree": false,
+            "marginal gain error": 0.0
+        },
+        {
+            "graph": "wikipedia",
+            "algorithm": "community-im",
+            "time taken": 269.99168780006585,
+            "influence": 1136.1213,
+            "budget": 10,
+            "weighting scheme": "weighted_cascade",
+            "use diffusion degree": false,
+            "marginal gain error": 0.0
+        },
+        {
+            "graph": "wikipedia",
+            "algorithm": "community-im",
+            "time taken": 465.90705330012133,
+            "influence": 1577.6016,
+            "budget": 20,
+            "weighting scheme": "weighted_cascade",
+            "use diffusion degree": false,
+            "marginal gain error": 0.0
+        },
+        {
+            "graph": "wikipedia",
+            "algorithm": "community-im",
+            "time taken": 270.58913129993016,
+            "influence": 1158.2983,
+            "budget": 10,
+            "weighting scheme": "weighted_cascade",
+            "use diffusion degree": true,
+            "marginal gain error": 0.0
+        },
+        {
+            "graph": "wikipedia",
+            "algorithm": "community-im",
+            "time taken": 466.5986398998066,
+            "influence": 1585.0498,
+            "budget": 20,
+            "weighting scheme": "weighted_cascade",
+            "use diffusion degree": true,
+            "marginal gain error": 0.0
+        }
+    ]
+}
