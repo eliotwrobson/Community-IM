@@ -43,7 +43,7 @@ class ExperimentResult:
     partition_method: PartitionMethod | None
     use_diffusion_degree: bool
     seeds: list[int]
-    modularity: int | None = None
+    modularity: float | None = None
     num_communities: int | None = None
 
 
@@ -87,6 +87,8 @@ def write_benchmark_result(
         "use diffusion degree": result.use_diffusion_degree,
         "marginal gain error": result.marginal_gain_error,
         "modularity": result.modularity,
+        "partition method": result.partition_method,
+        "num communities": result.num_communities,
     }
 
     data["results"].append(result_dict)
@@ -337,7 +339,7 @@ def celf(
 
     for _ in budget_iterator:
         while True:
-            celf_pp_cache = {}
+            celf_pp_cache: dict[int, float] = {}
 
             _, current_node = heapq.heappop(marg_gain)
 
@@ -441,7 +443,7 @@ def community_im_runner(
     graph: nx.DiGraph,
     budget: int,
     marginal_gain_error: float,
-    partition_method: str,
+    partition_method: PartitionMethod,
     use_diffusion_degree: bool,
     num_trials: int,
 ) -> ExperimentResult:
