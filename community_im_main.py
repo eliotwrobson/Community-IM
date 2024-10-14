@@ -61,11 +61,14 @@ def initialize_cache() -> None:
 def write_benchmark_result(
     result: ExperimentResult, budget: int, influence: float
 ) -> None:
-    time_taken = (
-        sum(result.times_taken[:budget])
-        + result.partition_time_taken
-        + result.diffusion_degree_time_taken
-    )
+    print("seeds: ", result.seeds)
+    print("times: ", len(result.times_taken))
+    print("budget: ", budget - 1)
+    time_taken = result.times_taken[budget - 1] + result.partition_time_taken
+
+    if result.use_diffusion_degree:
+        time_taken += result.diffusion_degree_time_taken
+
     # Create file if it doesn't already exist
     if not os.path.exists(RESULT_FILE_NAME):
         with open(RESULT_FILE_NAME, "w") as f:
@@ -93,7 +96,7 @@ def write_benchmark_result(
 
 
 def get_partition(
-    graph: nx.DiGraph, partition_method: PartitionMethod
+    graph: nx.DiGraph, partition_method: PartitionMethod, *, seed: int = 12345
 ) -> tuple[float, DictPartition, dict[int, int]]:
     """
     TODO add a way to try different clustering methods
@@ -103,7 +106,7 @@ def get_partition(
 
     with shelve.open(CACHE_FILE_NAME, writeback=True) as cache:
         if partition_name not in cache["partitions"]:
-            print("Starting partition")
+            print("Computing partition")
 
             start_time = time.perf_counter()
             igraph_graph = ig.Graph.from_networkx(graph)
@@ -120,6 +123,7 @@ def get_partition(
                 igraph_graph,
                 partition_method_class,
                 weights="activation_prob",
+                seed=seed,
             )
 
             end_time = time.perf_counter()
@@ -143,7 +147,6 @@ def get_partition(
 
             cache["partitions"][partition_name] = res_tup
 
-        print("Reading partition from cache")
         return cache["partitions"][partition_name]
 
 
@@ -324,9 +327,7 @@ def celf(
     spreads = [max_mg]
     max_budget = min(max_budget, len(marg_gain))
 
-    budget_iterator = (
-        tqdm.trange(max_budget - 1) if tqdm_budget else range(max_budget - 1)
-    )
+    budget_iterator = tqdm.trange(max_budget) if tqdm_budget else range(max_budget)
 
     for _ in budget_iterator:
         while True:
@@ -510,6 +511,8 @@ def celf_pp_runner(
         seeds.append(seed)
         times_taken.append(end_time - start_time)
 
+    assert len(seeds) == budget
+
     return (
         model,
         ExperimentResult(
@@ -576,7 +579,10 @@ def main() -> None:
                 graph_benchmark_results.append(community_im_result)
 
         print("Evaluating quality of seed sets.")
-        for result, budget in tqdm.tqdm(it.product(graph_benchmark_results, budgets)):
+        length = len(graph_benchmark_results) * len(budgets)
+        for result, budget in tqdm.tqdm(
+            it.product(graph_benchmark_results, budgets), total=length
+        ):
             seeds = result.seeds[:budget]
             influence = evaluate_diffusion(model, seeds)
 

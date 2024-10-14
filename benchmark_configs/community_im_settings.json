@@ -1,5 +1,5 @@
 {
-  "graphs": ["wikipedia"],
+  "graphs": ["facebook"],
   "weighting_schemes": ["weighted_cascade"],
   "partitioning_algorithms": ["ModularityVertexPartition"],
   "marginal_gain_errors": [0.0],
