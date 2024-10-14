@@ -585,7 +585,7 @@ def degree_runner(
     min_heap: list[tuple[int, int]] = []
 
     # Iterate through the nodes and their out-degrees
-    for node in tqdm.tqdm(graph.nodes()):
+    for node in graph.nodes():
         node_tup = (-graph.out_degree(node), node)
 
         # If the heap exceeds size k, pop the smallest element

@@ -5,15 +5,11 @@
     {
       "partitioning_algorithm": "RBConfigurationVertexPartition",
       "resolution_parameter": 1.0
-    },
-    {
-      "partitioning_algorithm": "RBConfigurationVertexPartition",
-      "resolution_parameter": 2.0
     }
   ],
   "marginal_gain_errors": [0.0],
-  "use_diffusion_degree": [false, true],
-  "budgets": [5, 20, 100, 200, 400],
+  "use_diffusion_degree": [false],
+  "budgets": [5, 20, 100],
   "num_samples": [1000],
   "skip_celf": true
 }
