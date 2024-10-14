@@ -23,8 +23,9 @@ from cynetdiff.utils import networkx_to_ic_model
 import dataset_manager as dm
 
 DictPartition = dict[int, list[int]]
-# TODO add resolution parameter
-PartitionMethod = t.Literal["RBConfigurationVertexPartition", "LabelPropagation"]
+PartitionMethod = t.Literal[
+    "RBConfigurationVertexPartition", "CPMVertexPartition", "LabelPropagation"
+]
 
 CACHE_FILE_NAME = "cache.db"
 RESULT_FILE_NAME = "benchmark_result.json"
@@ -35,16 +36,16 @@ RANDOM_SEED_DEFAULT = 12345
 class ExperimentResult:
     algorithm: str
     times_taken: list[float]
-    partition_time_taken: float
-    diffusion_degree_time_taken: float
     graph: str
     num_nodes: int
     num_edges: int
     weighting_scheme: str
     marginal_gain_error: float
-    partition_method: PartitionMethod | None
-    use_diffusion_degree: bool
     seeds: list[int]
+    use_diffusion_degree: bool = False
+    partition_method: PartitionMethod | None = None
+    partition_time_taken: float = 0.0
+    diffusion_degree_time_taken: float = 0.0
     modularity: float | None = None
     num_communities: int | None = None
     num_edges_removed: int = 0
@@ -135,6 +136,8 @@ def get_partition(
                 # https://leidenalg.readthedocs.io/en/latest/reference.html
                 if partition_method == "RBConfigurationVertexPartition":
                     partition_method_class = la.RBConfigurationVertexPartition
+                elif partition_method == "CPMVertexPartition":
+                    partition_method_class = la.CPMVertexPartition
                 else:
                     assert_never(partition_method)
 
@@ -561,17 +564,56 @@ def celf_pp_runner(
         ExperimentResult(
             algorithm="celf-pp",
             times_taken=times_taken,
-            partition_time_taken=0.0,
-            diffusion_degree_time_taken=0.0,
             graph=graph.name,
             num_nodes=graph.number_of_nodes(),
             num_edges=graph.number_of_edges(),
             weighting_scheme=graph.weighting_scheme,
             marginal_gain_error=marginal_gain_error,
-            partition_method=None,
-            use_diffusion_degree=False,
             seeds=seeds,
         ),
+    )
+
+
+def degree_runner(
+    graph: nx.DiGraph,
+    budget: int,
+) -> ExperimentResult:
+    start_time = time.perf_counter()
+
+    # Create a min-heap to store the top k nodes
+    min_heap: list[tuple[int, int]] = []
+
+    # Iterate through the nodes and their out-degrees
+    for node in graph.nodes():
+        node_tup = (-graph.out_degree(node), node)
+
+        # If the heap exceeds size k, pop the smallest element
+        if len(min_heap) <= budget:
+            heapq.heappush(min_heap, node_tup)
+        else:
+            heapq.heappushpop(min_heap, node_tup)
+
+    seeds = []
+    times_taken = []
+
+    while min_heap:
+        _, node = heapq.heappop(min_heap)
+        end_time = time.perf_counter()
+
+        seeds.append(node)
+        times_taken.append(end_time - start_time)
+
+    assert len(seeds) == budget
+
+    return ExperimentResult(
+        algorithm="degree",
+        times_taken=times_taken,
+        graph=graph.name,
+        num_nodes=graph.number_of_nodes(),
+        num_edges=graph.number_of_edges(),
+        weighting_scheme=graph.weighting_scheme,
+        marginal_gain_error=0.0,
+        seeds=seeds,
     )
 
 
@@ -598,11 +640,16 @@ def main() -> None:
 
     for graph_name, weighting_scheme in graphs:
         graph = dm.get_graph(graph_name, weighting_scheme, random_seed=random_seed)
-        graph_benchmark_results: list[ExperimentResult] = []
+
+        # Start with degree discount baseline because it's easy to compute.
+        graph_benchmark_results: list[ExperimentResult] = [
+            degree_runner(graph, max_budget)
+        ]
 
         for marginal_gain_error, num_samples in it.product(
             settings_dict["marginal_gain_errors"], settings_dict["num_samples"]
         ):
+            # Run CELF algorithm
             if not skip_celf:
                 print(f"Running celfpp on {graph_name} with budget {max_budget}.")
                 model, celf_result = celf_pp_runner(
