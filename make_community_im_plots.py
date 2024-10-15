@@ -34,7 +34,7 @@ def get_runtime(
 
 
 def main() -> None:
-    GRAPH_NAME = "amazon"
+    GRAPH_NAME = "dblp"
     WEIGHTING_SCHEME = "weighted_cascade"
 
     community_im_influences = []
