@@ -24,9 +24,7 @@ from heapdict import heapdict
 import dataset_manager as dm
 
 DictPartition = dict[int, list[int]]
-PartitionMethod = t.Literal[
-    "RBConfigurationVertexPartition", "CPMVertexPartition", "LabelPropagation"
-]
+PartitionMethod = t.Literal["RBConfigurationVertexPartition", "CPMVertexPartition"]
 
 CACHE_FILE_NAME = "cache.db"
 RESULT_FILE_NAME = "benchmark_result.json"
@@ -47,7 +45,7 @@ class ExperimentResult:
     partition_method: PartitionMethod | None = None
     partition_time_taken: float = 0.0
     diffusion_degree_time_taken: float = 0.0
-    modularity: float | None = None
+    quality: float | None = None
     num_communities: int | None = None
     num_edges_removed: int = 0
     resolution_parameter: float | None = None
@@ -94,7 +92,7 @@ def write_benchmark_result(
         "weighting scheme": result.weighting_scheme,
         "use diffusion degree": result.use_diffusion_degree,
         "marginal gain error": result.marginal_gain_error,
-        "modularity": result.modularity,
+        "quality": result.quality,
         "partition method": result.partition_method,
         "resolution parameter": result.resolution_parameter,
         "num communities": result.num_communities,
@@ -123,32 +121,25 @@ def get_partition(
 
             start_time = time.perf_counter()
 
-            if partition_method == "LabelPropagation":
-                assert resolution_parameter is None
+            igraph_graph = ig.Graph.from_networkx(graph)
 
-                partition = list(
-                    nx.community.fast_label_propagation_communities(
-                        graph, weight="activation_prob", seed=random_seed
-                    )
-                )
+            # https://leidenalg.readthedocs.io/en/latest/reference.html
+            if partition_method == "RBConfigurationVertexPartition":
+                partition_method_class = la.RBConfigurationVertexPartition
+            elif partition_method == "CPMVertexPartition":
+                partition_method_class = la.CPMVertexPartition
             else:
-                igraph_graph = ig.Graph.from_networkx(graph)
+                assert_never(partition_method)
 
-                # https://leidenalg.readthedocs.io/en/latest/reference.html
-                if partition_method == "RBConfigurationVertexPartition":
-                    partition_method_class = la.RBConfigurationVertexPartition
-                elif partition_method == "CPMVertexPartition":
-                    partition_method_class = la.CPMVertexPartition
-                else:
-                    assert_never(partition_method)
+            partition = la.find_partition(
+                igraph_graph,
+                partition_method_class,
+                weights="activation_prob",
+                resolution_parameter=resolution_parameter,
+                seed=random_seed,
+            )
 
-                partition = la.find_partition(
-                    igraph_graph,
-                    partition_method_class,
-                    weights="activation_prob",
-                    resolution_parameter=resolution_parameter,
-                    seed=random_seed,
-                )
+            quality = partition.quality()
 
             end_time = time.perf_counter()
 
@@ -167,7 +158,7 @@ def get_partition(
                 end_time - start_time,
                 result,
                 rev_dict,
-                nx.community.modularity(graph, partition),
+                quality,
             )
 
             cache["partitions"][partition_name] = res_tup
@@ -319,7 +310,7 @@ def celf(
     marginal_gain_error: float,
     *,
     tqdm_budget: bool = False,
-) -> t.Generator[tuple[float, int], None, None]:  # tuple[list[int], list[float]]:
+) -> t.Generator[tuple[float, int], None, None]:
     """
     marginal_gain_error: The amount of slack allowed in the computation of marginal gain.
     Potentially introduces some small error, but likely worth the runtaime gains.
@@ -477,7 +468,7 @@ def community_im_runner(
     *,
     random_seed: int = 12345,
 ) -> ExperimentResult:
-    partition_time_taken, parts, rev_partition_dict, modularity = get_partition(
+    partition_time_taken, parts, rev_partition_dict, quality = get_partition(
         graph, partition_method, resolution_parameter, random_seed=random_seed
     )
 
@@ -523,7 +514,7 @@ def community_im_runner(
         partition_method=partition_method,
         use_diffusion_degree=use_diffusion_degree,
         seeds=seeds,
-        modularity=modularity,
+        quality=quality,
         num_communities=len(parts),
         num_edges_removed=graph.number_of_edges()
         - graph_only_community_edges.number_of_edges(),
