@@ -34,8 +34,8 @@ def get_runtime(
 
 
 def main() -> None:
-    GRAPH_NAME = "dblp"
-    WEIGHTING_SCHEME = "weighted_cascade"
+    GRAPH_NAME = "deezer"
+    WEIGHTING_SCHEME = "trivalency"
 
     community_im_influences = []
     community_im_dd_influences = []
@@ -113,6 +113,28 @@ def main() -> None:
         degree_discount_runtimes.append(degree_discount_runtime)
 
     # print(community_im_influences)
+
+    print(
+        {
+            "Budgets": budgets,
+            "Community IM Influences": community_im_influences,
+            "Community IM DD Influences": community_im_dd_influences,
+            "CELF++ Influences": celf_pp_influences,
+            "Degree Influences": degree_influences,
+            "Degree Discount Influences": degree_discount_influences,
+        }
+    )
+
+    print(
+        {
+            "Budgets": budgets,
+            "Community IM Runtimes": community_im_runtimes,
+            "Community IM DD Runtimes": community_im_dd_runtimes,
+            "CELF++ Runtimes": celf_pp_runtimes,
+            "Degree Runtimes": degree_runtimes,
+            "Degree Discount Runtimes": degree_discount_runtimes,
+        }
+    )
 
     (
         community_im_line,
