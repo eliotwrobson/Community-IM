@@ -350,12 +350,13 @@ def celf(
 
     max_mg, selected_node = heapq.heappop(marg_gain)
     S = [selected_node]
-    spreads = [max_mg]
+    # spreads = [max_mg]
     max_budget = min(max_budget, len(marg_gain))
 
     budget_iterator = tqdm.trange(max_budget) if tqdm_budget else range(max_budget)
 
     for _ in budget_iterator:
+        # num_iters = 0
         while True:
             celf_pp_cache: dict[int, float] = {}
 
@@ -366,7 +367,7 @@ def celf(
                 new_mg = celf_pp_cache[current_node]
                 break
 
-            new_mg = -compute_marginal_gain(
+            new_mg = compute_marginal_gain(
                 model,
                 vertex_weight_dict,
                 current_node,
@@ -374,17 +375,23 @@ def celf(
                 num_trials=num_trials,
             )
 
+            # NOTE uncomment for timing code
+            # num_iters += 1
+            # if num_iters % 100 == 1:
+            #     print(new_mg, -marg_gain[0][0])
+
             celf_pp_cache[current_node] = new_mg
 
             # My own optimization: Add granularity argument to ignore
-            # TODO double check this works as expected
-            if not marg_gain or new_mg - marginal_gain_error <= -marg_gain[0][0]:
+            # TODO change the marginal gain error to be a scaling factor larger than 1.0
+            if not marg_gain or new_mg + marginal_gain_error >= -marg_gain[0][0]:
                 break
             else:
-                heapq.heappush(marg_gain, (new_mg, current_node))
+                heapq.heappush(marg_gain, (-new_mg, current_node))
 
+        # print(num_iters)
         S.append(current_node)
-        spreads.append(new_mg)
+        # spreads.append(new_mg)
 
         yield new_mg, current_node
 
@@ -678,6 +685,8 @@ def main() -> None:
     with open("benchmark_configs/community_im_settings.json") as f:
         settings_dict = json.load(f)
 
+    # TODO add progress indicator for total number of experiments that are being run.
+    # maybe use logging?
     graphs = it.product(settings_dict["graphs"], settings_dict["weighting_schemes"])
     budgets = sorted(settings_dict["budgets"])
     max_budget = budgets[-1]
