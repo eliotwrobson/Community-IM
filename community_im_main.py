@@ -321,9 +321,9 @@ def celf(
     https://hautahi.com/im_greedycelf
     """
 
-    if marginal_gain_error < 0.0:
+    if marginal_gain_error < 1.0:
         raise ValueError(
-            f"Invalid marg_gain_error {marginal_gain_error}, must be at least 0."
+            f"Invalid marg_gain_error {marginal_gain_error}, must be at least 1.0."
         )
 
     # Run the CELF algorithm
@@ -376,15 +376,17 @@ def celf(
             )
 
             # NOTE uncomment for timing code
-            # num_iters += 1
-            # if num_iters % 100 == 1:
-            #     print(new_mg, -marg_gain[0][0])
+            # if (
+            #     new_mg < -marg_gain[0][0]
+            #     and new_mg * marginal_gain_error >= -marg_gain[0][0]
+            # ):
+            #     print("HIT")
 
             celf_pp_cache[current_node] = new_mg
 
             # My own optimization: Add granularity argument to ignore
             # TODO change the marginal gain error to be a scaling factor larger than 1.0
-            if not marg_gain or new_mg + marginal_gain_error >= -marg_gain[0][0]:
+            if not marg_gain or new_mg * marginal_gain_error >= -marg_gain[0][0]:
                 break
             else:
                 heapq.heappush(marg_gain, (-new_mg, current_node))

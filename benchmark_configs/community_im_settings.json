@@ -11,11 +11,8 @@
       "resolution_parameter": 2.0
     }
   ],
-  "marginal_gain_errors": [0.0],
+  "marginal_gain_errors": [1.2, 1.0],
   "use_diffusion_degree": [false, true],
-  "budgets": [
-    5, 10, 20, 30, 40, 50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000
-  ],
-  "num_samples": [1000],
-  "skip_celf": true
+  "budgets": [5, 10, 20, 30, 40, 50, 100, 200, 300, 400],
+  "num_samples": [1000]
 }
