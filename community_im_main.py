@@ -393,7 +393,7 @@ def celf(
         S.append(current_node)
         # spreads.append(new_mg)
 
-        yield new_mg, current_node
+        yield -new_mg, current_node
 
     # Return the maximizing set S and the increasing spread values.
     # return S, spreads
