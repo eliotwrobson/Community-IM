@@ -313,7 +313,7 @@ def celf(
 ) -> t.Generator[tuple[float, int], None, None]:
     """
     marginal_gain_error: The amount of slack allowed in the computation of marginal gain.
-    Potentially introduces some small error, but likely worth the runtaime gains.
+    Potentially introduces some small error, but likely worth the runtime gains.
 
     Input: graph object, number of seed nodes
     Output: optimal seed set, resulting spread, time for each iteration
