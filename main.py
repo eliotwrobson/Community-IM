@@ -9,7 +9,6 @@ from cynetdiff.utils import networkx_to_ic_model
 import dataset_manager as dm
 import frac_influence as fi
 import lim_im as li
-import mle_selection as mles
 import ris_selection as rs
 
 NUM_TRIALS = 10_000
@@ -130,16 +129,6 @@ def fractional_im_experiments() -> None:
 
     df = pd.DataFrame(graph_cd_info)
     df.to_csv("benchmark_results" + os.sep + f"{graph.name}_cd_results.csv")
-
-
-def selection_im_experiments() -> None:
-    print("starting selection")
-    graph = dm.get_graph("deezer")
-    model, _ = networkx_to_ic_model(graph)
-    vertices, _ = rs.ris_im(graph, 20)
-    print("Running algo")
-    budget = mles.mle_selection(vertices, model, 1.0, 400)
-    print(budget)
 
 
 def main() -> None:
