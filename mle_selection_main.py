@@ -1,3 +1,6 @@
+import time
+
+import pandas as pd
 from cynetdiff.models import IndependentCascadeModel
 from cynetdiff.utils import networkx_to_ic_model
 
@@ -75,14 +78,32 @@ def selection_im_experiments() -> None:
 
     payoffs = [100, 200, 500, 1000]
 
+    result_dicts = []
+
     for graph in graphs:
         print(f"starting selection on graph {graph.name}")
         model, _ = networkx_to_ic_model(graph)
-        vertices, _ = rs.ris_im(graph, 100)
+        vertices, _ = rs.ris_im(graph, 20)
         for payoff in payoffs:
             print("Running algo")
-            budget, selection, total_profit = mle_selection(vertices, model, 1.0, 400)
-            print(budget, total_profit)
+            start = time.perf_counter()
+            budget, selection, total_profit = mle_selection(
+                vertices, model, 1.0, payoff
+            )
+            end = time.perf_counter()
+
+            result_dicts.append(
+                {
+                    "graph": graph.name,
+                    "desired profit": payoff,
+                    "used budget": budget,
+                    "time taken": end - start,
+                }
+            )
+
+    # From result dicts, turn into a CSV
+    df = pd.DataFrame(result_dicts)
+    df.to_csv("mle_selection_benchmark_results.csv")
 
 
 if __name__ == "__main__":
