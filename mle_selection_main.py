@@ -64,7 +64,7 @@ def mle_selection(
         graph_model, budget_dict, num_trials=num_trials
     )
 
-    return lo, budget_dict, total_profit
+    return lo, budget_dict, influence * profit_per_node
 
 
 def selection_im_experiments() -> None:
