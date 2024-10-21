@@ -29,8 +29,8 @@ def mle_selection(
     profit_per_node: float,
     desired_profit: float,
     *,
-    num_trials=1_000,
-    eps=0.2,
+    num_trials=10_000,
+    eps=0.1,
 ) -> tuple[float, dict[int, float], float]:
     lo = 0.0
     hi = float(len(nested_solution))
@@ -96,6 +96,7 @@ def selection_im_experiments() -> None:
                 {
                     "graph": graph.name,
                     "desired profit": payoff,
+                    "actual profit": total_profit,
                     "used budget": budget,
                     "time taken": end - start,
                 }
