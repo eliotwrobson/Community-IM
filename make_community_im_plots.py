@@ -35,7 +35,7 @@ def get_runtime(
 
 def main() -> None:
     GRAPH_NAME = "deezer"
-    WEIGHTING_SCHEME = "trivalency"
+    WEIGHTING_SCHEME = "weighted_cascade"
 
     community_im_influences = []
     community_im_dd_influences = []
@@ -43,7 +43,7 @@ def main() -> None:
     degree_influences = []
     degree_discount_influences = []
 
-    budgets = [5, 20, 100, 200, 400]
+    budgets = [5, 20]
 
     community_im_runtimes = []
     community_im_dd_runtimes = []
