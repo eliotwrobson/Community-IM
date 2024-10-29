@@ -229,7 +229,9 @@ def get_graph_with_diffusion_degree_payoffs(
 
             assert node_score >= 0.0
 
-            graph_only_community_edges.nodes[start_node]["payoff"] = node_score
+            # Add 1.0 to account for node itself.
+            graph_only_community_edges.nodes[start_node]["payoff"] = node_score + 1.0
+            assert graph_only_community_edges.nodes[start_node]["payoff"] >= 1.0
 
         end_time = time.perf_counter()
         res_tup = (end_time - start_time, graph_only_community_edges)
@@ -237,22 +239,6 @@ def get_graph_with_diffusion_degree_payoffs(
         cache["graph_diffusion_degree_offsets"][cache_entry_name] = res_tup
 
         return res_tup
-
-
-def evaluate_diffusion(
-    model: IndependentCascadeModel, seed_set: t.Iterable[int], *, num_samples=10_000
-) -> float:
-    model.set_seeds(seed_set)
-
-    total = 0
-
-    for _ in tqdm.trange(num_samples, leave=False):
-        # Resetting the model doesn't change the initial seed set used.
-        model.reset_model()
-        model.advance_until_completion()
-        total += model.get_num_activated_nodes()
-
-    return total / num_samples
 
 
 def celf(
@@ -674,7 +660,7 @@ def main() -> None:
             it.product(graph_benchmark_results, budgets), total=length
         ):
             seeds = result.seeds[:budget]
-            influence = evaluate_diffusion(model, seeds)
+            influence = model.compute_marginal_gain(seeds, None, 10_000)
 
             write_benchmark_result(result, budget, influence)
 
