@@ -278,13 +278,11 @@ def celf(
 
     max_mg, selected_node = heapq.heappop(marg_gain)
     S = [selected_node]
-    # spreads = [max_mg]
     max_budget = min(max_budget, len(marg_gain))
 
     budget_iterator = tqdm.trange(max_budget) if tqdm_budget else range(max_budget)
 
     for _ in budget_iterator:
-        # num_iters = 0
         while True:
             celf_pp_cache: dict[int, float] = {}
 
@@ -306,14 +304,9 @@ def celf(
             else:
                 heapq.heappush(marg_gain, (-new_mg, current_node))
 
-        # print(num_iters)
         S.append(current_node)
-        # spreads.append(new_mg)
 
         yield -new_mg, current_node
-
-    # Return the maximizing set S and the increasing spread values.
-    # return S, spreads
 
 
 def get_nested_solutions(

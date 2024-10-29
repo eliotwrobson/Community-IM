@@ -1,5 +1,5 @@
 {
-  "graphs": ["deezer"],
+  "graphs": ["deezer", "facebook", "wikipedia"],
   "weighting_schemes": ["weighted_cascade"],
   "partitioning_methods": [
     {
