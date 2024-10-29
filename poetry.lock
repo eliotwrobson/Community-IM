@@ -265,13 +265,13 @@ tests = ["pytest", "pytest-cov", "pytest-xdist"]
 
 [[package]]
 name = "cynetdiff"
-version = "0.1.13"
+version = "0.1.14"
 description = "A fast network diffusion library"
 optional = false
 python-versions = ">=3.9"
 files = [
-    {file = "cynetdiff-0.1.13-cp311-cp311-manylinux_2_31_x86_64.whl", hash = "sha256:6d5fce4a54e45ed69e747ca86a7978d4772f82d4a6a3505c3813eefa7a95b8e6"},
-    {file = "cynetdiff-0.1.13.tar.gz", hash = "sha256:b6cd4bca2a42b84c955b7e0b3b6024f8624fca1c4d01d1312f9660ba4f20fe1f"},
+    {file = "cynetdiff-0.1.14-cp311-cp311-manylinux_2_31_x86_64.whl", hash = "sha256:12a20ad02ff19e7b67cf8b33029b0ca5d23e55f1aa959e474ba03bba6ab2b843"},
+    {file = "cynetdiff-0.1.14.tar.gz", hash = "sha256:364ff1508f8902e07706f2c66b7e389887d5c36791246a36a0680bf789a6e125"},
 ]
 
 [[package]]
@@ -1621,4 +1621,4 @@ tests = ["pytest", "pytest-cov"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "5cddd93de31b760bdc725c1b1ef895461188b17990c902739cc6c945cca1b868"
+content-hash = "706d0d2ba1775b70ae0f431485a6f5ea9be33ffdd9ffdd1ce011e535baa3edb8"

@@ -17,7 +17,7 @@ import igraph as ig
 import leidenalg as la
 import networkx as nx
 import tqdm
-from cynetdiff.models import DiffusionModel
+from cynetdiff.models import IndependentCascadeModel
 from cynetdiff.utils import networkx_to_ic_model
 from heapdict import heapdict
 
@@ -166,14 +166,16 @@ def get_partition(
         return cache["partitions"][partition_name]
 
 
-def compute_community_aware_diffusion_degrees(
+def get_graph_with_diffusion_degree_payoffs(
     graph: nx.DiGraph,
     partition_method: PartitionMethod,
     resolution_parameter: float | None,
     rev_partition_dict: dict[int, int],
-) -> tuple[float, dict[int, float]]:
+) -> tuple[float, nx.DiGraph]:
     """
     TODO add a test case for very simple double check of this calculation.
+    Returns a graph with inter-community edges removed and payoffs set to be
+    the community aware diffusion degree.
     """
 
     cache_entry_name = f"{graph.name}_{graph.weighting_scheme}_{partition_method}_{resolution_parameter}"
@@ -184,7 +186,13 @@ def compute_community_aware_diffusion_degrees(
 
         print("Computing community aware diffusion degree")
         start_time = time.perf_counter()
-        res_dict = {}
+
+        # Next, remove inter-community edges from graph
+        # NOTE this is a shallow copy, and that should be ok.
+        graph_only_community_edges = nx.subgraph_view(
+            graph,
+            filter_edge=lambda u, v: rev_partition_dict[u] == rev_partition_dict[v],
+        ).copy(as_view=False)
 
         for start_node in tqdm.tqdm(graph, total=graph.number_of_nodes()):
             # Ignore all edges within the same community as start_node
@@ -221,10 +229,10 @@ def compute_community_aware_diffusion_degrees(
 
             assert node_score >= 0.0
 
-            res_dict[start_node] = node_score
+            graph_only_community_edges.nodes[start_node]["payoff"] = node_score
 
         end_time = time.perf_counter()
-        res_tup = (end_time - start_time, res_dict)
+        res_tup = (end_time - start_time, graph_only_community_edges)
 
         cache["graph_diffusion_degree_offsets"][cache_entry_name] = res_tup
 
@@ -232,7 +240,7 @@ def compute_community_aware_diffusion_degrees(
 
 
 def evaluate_diffusion(
-    model: DiffusionModel, seed_set: t.Iterable[int], *, num_samples=10_000
+    model: IndependentCascadeModel, seed_set: t.Iterable[int], *, num_samples=10_000
 ) -> float:
     model.set_seeds(seed_set)
 
@@ -247,65 +255,10 @@ def evaluate_diffusion(
     return total / num_samples
 
 
-def compute_marginal_gain(
-    model: DiffusionModel,
-    vertex_weight_dict: dict[int, float] | None,
-    new_node: int,
-    seeds_list: t.List[int],
-    *,
-    num_trials: int = 1_000,
-) -> float:
-    """
-    Compute the marginal gain in the spread of influence by adding a new node to the set of seed nodes,
-    by summing the differences of spreads for each trial and then taking the average.
-
-    Parameters:
-    - model: The model used for simulating the spread of influence.
-    - new_node: The new node to consider adding to the set of seed nodes.
-    - seeds: The current set of seed nodes.
-    - num_trials: The number of trials to average the spread of influence over.
-
-    Returns:
-    - The average marginal gain in the spread of influence by adding the new node.
-    """
-    seeds = set(seeds_list)
-    original_spread = 0.0
-    # If no seeds at the beginning, original spread is always just zero.
-    # Prevents wasted work in cases where the seed set is empty.
-    if len(seeds) > 0:
-        model.set_seeds(seeds)
-
-        for _ in range(num_trials):
-            model.reset_model()
-            model.advance_until_completion()
-            original_spread += model.get_num_activated_nodes()
-
-            if vertex_weight_dict is not None:
-                for activated_node in model.get_activated_nodes():
-                    original_spread += vertex_weight_dict[activated_node]
-
-    new_seeds = seeds.union({new_node})
-    model.set_seeds(new_seeds)
-
-    new_spread = 0.0
-    for _ in range(num_trials):
-        model.reset_model()
-        model.advance_until_completion()
-        new_spread += model.get_num_activated_nodes()
-
-        if vertex_weight_dict is not None:
-            for activated_node in model.get_activated_nodes():
-                new_spread += vertex_weight_dict[activated_node]
-
-    # Avoid floating point division until the very end.
-    return (new_spread - original_spread) / num_trials
-
-
 def celf(
-    model: DiffusionModel,
+    model: IndependentCascadeModel,
     max_budget: int,
     nodes: list[int],
-    vertex_weight_dict: dict[int, float] | None,
     num_trials: int,
     marginal_gain_error: float,
     *,
@@ -327,23 +280,12 @@ def celf(
         )
 
     # Run the CELF algorithm
-    marg_gain = []
 
-    # print("Computing marginal gains.")
     # First, compute all marginal gains
-    for node in tqdm.tqdm(nodes, leave=False):
-        marg_gain.append(
-            (
-                -compute_marginal_gain(
-                    model,
-                    vertex_weight_dict,
-                    node,
-                    [],
-                    num_trials=num_trials,
-                ),
-                node,
-            )
-        )
+    marg_gain = [
+        (-model.compute_marginal_gain([], node, num_trials=num_trials), node)
+        for node in tqdm.tqdm(nodes, leave=False)
+    ]
 
     # Convert to heap
     heapq.heapify(marg_gain)
@@ -367,20 +309,7 @@ def celf(
                 new_mg = celf_pp_cache[current_node]
                 break
 
-            new_mg = compute_marginal_gain(
-                model,
-                vertex_weight_dict,
-                current_node,
-                S,
-                num_trials=num_trials,
-            )
-
-            # NOTE uncomment for timing code
-            # if (
-            #     new_mg < -marg_gain[0][0]
-            #     and new_mg * marginal_gain_error >= -marg_gain[0][0]
-            # ):
-            #     print("HIT")
+            new_mg = model.compute_marginal_gain(S, current_node, num_trials=num_trials)
 
             celf_pp_cache[current_node] = new_mg
 
@@ -405,7 +334,6 @@ def get_nested_solutions(
     graph_only_community_edges: nx.DiGraph,
     partition: DictPartition,
     budget: int,
-    vertex_weight_dict: dict[int, float] | None,
     num_trials: int,
     marginal_gain_error: float,
 ) -> tuple[list[float], list[int]]:
@@ -427,7 +355,6 @@ def get_nested_solutions(
             model,
             budget,
             community,
-            vertex_weight_dict,
             num_trials,
             marginal_gain_error,
         )
@@ -481,22 +408,20 @@ def community_im_runner(
         graph, partition_method, resolution_parameter, random_seed=random_seed
     )
 
-    # Next, remove inter-community edges from graph
-    graph_only_community_edges = nx.subgraph_view(
-        graph, filter_edge=lambda u, v: rev_partition_dict[u] == rev_partition_dict[v]
-    )
-
     # Compute diffusion degree heuristic if necessary
 
     if use_diffusion_degree:
-        diffusion_degree_time_taken, vertex_weight_dict = (
-            compute_community_aware_diffusion_degrees(
+        diffusion_degree_time_taken, graph_only_community_edges = (
+            get_graph_with_diffusion_degree_payoffs(
                 graph, partition_method, resolution_parameter, rev_partition_dict
             )
         )
     else:
         diffusion_degree_time_taken = 0.0
-        vertex_weight_dict = None
+        graph_only_community_edges = nx.subgraph_view(
+            graph,
+            filter_edge=lambda u, v: rev_partition_dict[u] == rev_partition_dict[v],
+        )
 
     # Now that we have the dict with weights, do influence max using these weights on each
     # community separately.
@@ -505,7 +430,6 @@ def community_im_runner(
         graph_only_community_edges,
         parts,
         budget,
-        vertex_weight_dict,
         num_trials,
         marginal_gain_error,
     )
@@ -536,7 +460,7 @@ def celf_pp_runner(
     budget: int,
     marginal_gain_error: float,
     num_trials: int,
-) -> tuple[DiffusionModel, ExperimentResult]:
+) -> tuple[IndependentCascadeModel, ExperimentResult]:
     # Now that we have the dict with weights, do influence max using these weights on each
     # community separately.
 
@@ -550,7 +474,6 @@ def celf_pp_runner(
         model,
         budget,
         list(graph.nodes()),
-        None,
         num_trials=num_trials,
         marginal_gain_error=marginal_gain_error,
         tqdm_budget=True,
