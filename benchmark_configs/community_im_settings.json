@@ -9,6 +9,6 @@
   ],
   "marginal_gain_errors": [1.0],
   "use_diffusion_degree": [false, true],
-  "budgets": [5, 10, 20, 50, 100],
+  "budgets": [5, 10, 20, 50, 100, 400],
   "num_samples": [1000]
 }
