@@ -43,7 +43,7 @@ def main() -> None:
     degree_influences = []
     degree_discount_influences = []
 
-    budgets = [5, 20]
+    budgets = [5, 10, 20, 100]
 
     community_im_runtimes = []
     community_im_dd_runtimes = []
