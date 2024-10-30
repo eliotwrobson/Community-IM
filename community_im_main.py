@@ -141,8 +141,6 @@ def get_partition(
 
             quality = partition.quality()
 
-            end_time = time.perf_counter()
-
             # Compute partition and reversal
             result = {}
             rev_dict = {}
@@ -152,6 +150,8 @@ def get_partition(
 
                 for vtx in part:
                     rev_dict[vtx] = i
+
+            end_time = time.perf_counter()
 
             # Assemble into tuple and cache
             res_tup = (

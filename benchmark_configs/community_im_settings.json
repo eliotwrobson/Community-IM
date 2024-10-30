@@ -1,5 +1,5 @@
 {
-  "graphs": ["deezer", "facebook", "wikipedia"],
+  "graphs": ["amazon"],
   "weighting_schemes": ["weighted_cascade"],
   "partitioning_methods": [
     {
@@ -7,7 +7,7 @@
       "resolution_parameter": 1.0
     }
   ],
-  "marginal_gain_errors": [1.0],
+  "marginal_gain_errors": [1.2, 1.0],
   "use_diffusion_degree": [false, true],
   "budgets": [5, 10, 20, 50, 100, 400],
   "num_samples": [1000]
