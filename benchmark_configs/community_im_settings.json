@@ -1,5 +1,5 @@
 {
-  "graphs": ["amazon"],
+  "graphs": ["youtube"],
   "weighting_schemes": ["weighted_cascade"],
   "partitioning_methods": [
     {
@@ -9,6 +9,6 @@
   ],
   "marginal_gain_errors": [1.2, 1.0],
   "use_diffusion_degree": [false, true],
-  "budgets": [5, 10, 20, 50, 100, 400],
+  "budgets": [5, 10, 20, 50, 100],
   "num_samples": [1000]
 }
