@@ -36,7 +36,7 @@ def get_runtime(
 
 
 def main() -> None:
-    GRAPH_NAME = "amazon"
+    GRAPH_NAME = "youtube"
     WEIGHTING_SCHEME = "weighted_cascade"
 
     community_im_influences = []
@@ -46,7 +46,7 @@ def main() -> None:
     degree_influences = []
     degree_discount_influences = []
 
-    budgets = [5, 10, 20, 50, 100, 400]
+    budgets = [5, 10, 20, 50, 100]
 
     community_im_runtimes = []
     community_im_dd_runtimes = []

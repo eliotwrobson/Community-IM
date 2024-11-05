@@ -58,13 +58,13 @@ def mle_selection(
     # total_profit = final_profit * profit_per_node
     # print(total_profit)
 
-    budget_dict = assemble_dict(nested_solution, lo)
+    budget_dict = assemble_dict(nested_solution, hi)
 
     influence = fi.compute_fractional_influence(
         graph_model, budget_dict, num_trials=num_trials
     )
 
-    return lo, budget_dict, influence * profit_per_node
+    return hi, budget_dict, influence * profit_per_node
 
 
 def selection_im_experiments() -> None:
@@ -79,6 +79,7 @@ def selection_im_experiments() -> None:
     payoffs = [100, 200, 500, 1000]
 
     result_dicts = []
+    eps = 0.1
 
     for graph in graphs:
         print(f"starting selection on graph {graph.name}")
@@ -88,7 +89,7 @@ def selection_im_experiments() -> None:
             print("Running algo")
             start = time.perf_counter()
             budget, selection, total_profit = mle_selection(
-                vertices, model, 1.0, payoff
+                vertices, model, 1.0, payoff, eps=eps
             )
             end = time.perf_counter()
 
@@ -99,6 +100,7 @@ def selection_im_experiments() -> None:
                     "actual profit": total_profit,
                     "used budget": budget,
                     "time taken": end - start,
+                    "eps": eps,
                 }
             )
 
