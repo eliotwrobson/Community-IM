@@ -138,10 +138,14 @@ def cost_benefit_search(
 
     while lo + eps < hi:
         print(hi - lo, eps)
+
         m_1 = lo + (hi - lo) / 3
         m_2 = hi - (hi - lo) / 3
         profit_1 = compute_profit(m_1)
         profit_2 = compute_profit(m_2)
+
+        print("Profits:", profit_1, profit_2)
+
         if profit_1 < profit_2:
             lo = m_1
         else:
