@@ -126,9 +126,6 @@ def cost_benefit_search(
     that achieves the highest profit.
     """
 
-    lo = 0.0
-    hi = float(len(nested_solution))
-
     def compute_profit(budget: float) -> float:
         budget_dict = assemble_dict(nested_solution, budget)
         influence = fi.compute_fractional_influence(
@@ -136,36 +133,23 @@ def cost_benefit_search(
         )
         return influence * profit_per_node - budget * cost_per_unit
 
+    lo = 0.0
+    hi = float(len(nested_solution))
+
     while lo + eps < hi:
-        print(lo, hi)
-        mid_budget = (hi - lo) / 2 + lo
-
-        budget_dict = assemble_dict(nested_solution, mid_budget)
-
-        influence = fi.compute_fractional_influence(
-            graph_model, budget_dict, num_trials=num_trials
-        )
-        total_profit = influence * profit_per_node
-
-        if total_profit >= desired_profit:
-            hi = mid_budget
+        print(hi - lo, eps)
+        m_1 = lo + (hi - lo) / 3
+        m_2 = hi - (hi - lo) / 3
+        profit_1 = compute_profit(m_1)
+        profit_2 = compute_profit(m_2)
+        if profit_1 < profit_2:
+            lo = m_1
         else:
-            lo = mid_budget
-
-    # NOTE this code makes sure that the final output is the right thing (we want lo, not hi _I think_)
-    # final_profit = fi.compute_fractional_influence(
-    #     graph_model, budget_dict, num_trials=num_trials
-    # )
-    # total_profit = final_profit * profit_per_node
-    # print(total_profit)
+            hi = m_2
 
     budget_dict = assemble_dict(nested_solution, hi)
 
-    influence = fi.compute_fractional_influence(
-        graph_model, budget_dict, num_trials=num_trials
-    )
-
-    return hi, budget_dict, influence * profit_per_node
+    return hi, budget_dict, compute_profit(hi)
 
 
 def tradeoff_im_experiments() -> None:
@@ -186,16 +170,22 @@ def tradeoff_im_experiments() -> None:
         vertices, _ = rs.ris_im(graph, 20)
 
         print("Running algo")
+
+        profit_per_node = 1.0
+        cost_per_unit = 100.0
+
         start = time.perf_counter()
-        budget, selection, total_profit = mle_selection(
-            vertices, model, 1.0, 10.0, eps=eps
+        budget, selection, final_profit = cost_benefit_search(
+            vertices, model, profit_per_node, cost_per_unit, eps=eps
         )
         end = time.perf_counter()
 
         result_dicts.append(
             {
                 "graph": graph.name,
-                "actual profit": total_profit,
+                "final profit": final_profit,
+                "profit per node": profit_per_node,
+                "cost per unit": cost_per_unit,
                 "used budget": budget,
                 "time taken": end - start,
                 "eps": eps,
@@ -204,7 +194,7 @@ def tradeoff_im_experiments() -> None:
 
     # From result dicts, turn into a CSV
     df = pd.DataFrame(result_dicts)
-    df.to_csv("mle_selection_benchmark_results.csv")
+    df.to_csv("tradeoff_selection_benchmark_results.csv")
 
 
 if __name__ == "__main__":
