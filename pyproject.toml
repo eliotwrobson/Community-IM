@@ -1,3 +1,34 @@
+[project]
+name = "community-im"
+version = "0.1.0"
+description = "Community im experiments"
+requires-python = ">=3.11"
+readme = "README.md"
+dependencies = [
+  "ruff==0.11.1",
+  "mypy>=1.1.1",
+  "networkx~=3.2.1",
+  "pandas-stubs~=2.1.1.230928",
+  "pandas>=2.2.0",
+  "matplotlib~=3.8.1",
+  "numpy>=2.0.0",
+  "igraph>=0.10.6",
+  "pytest~=7.4.3",
+  "pytest-benchmark~=4.0.0",
+  "leidenalg==0.10.1",
+  "tikzplotlib~=0.10.1",
+  "types-tqdm~=4.66.0.5",
+  "tqdm~=4.66.1",
+  "setuptools~=69.0.3",
+  "cynetdiff==0.1.16",
+  "pooch~=1.8.2",
+  "heapdict~=1.0.1",
+]
+
+[tool.uv]
+package = false
+
+
 [[tool.mypy.overrides]]
 module = [
   "networkx.*",
@@ -8,39 +39,3 @@ module = [
   "tikzplotlib.*",
 ]
 ignore_missing_imports = true
-
-[tool.poetry]
-name = "community-im"
-version = "0.1.0"
-description = ""
-authors = ["Eliot Robson <eliot.robson24@gmail.com>"]
-readme = "README.md"
-package-mode = false
-
-[tool.poetry.dependencies]
-python = "^3.10"
-ruff = "^0.6.2"
-mypy = "1.1.1"
-networkx = "^3.2.1"
-pandas-stubs = "2.1.1.230928"
-pandas = "2.1.1"
-matplotlib = "3.8.1"
-matplotlib-stubs = "0.2.0"
-numpy = "^1.26.2"
-igraph = ">=0.10.6"
-pytest = "^7.4.3"
-pytest-benchmark = "^4.0.0"
-leidenalg = "0.10.1"
-graphblas-algorithms = "^2023.10.0"
-scipy = "^1.11.4"
-tikzplotlib = "^0.10.1"
-types-tqdm = "^4.66.0.5"
-tqdm = "^4.66.1"
-setuptools = "^69.0.3"
-cynetdiff = "^0.1.14"
-pooch = "^1.8.2"
-heapdict = "^1.0.1"
-
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
