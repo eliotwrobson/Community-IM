@@ -109,5 +109,103 @@ def selection_im_experiments() -> None:
     df.to_csv("mle_selection_benchmark_results.csv")
 
 
+### Start of cost-benefit search code ###
+
+
+def cost_benefit_search(
+    nested_solution: list[int],
+    graph_model: IndependentCascadeModel,
+    profit_per_node: float,
+    cost_per_unit: float,
+    *,
+    num_trials=10_000,
+    eps=0.1,
+) -> tuple[float, dict[int, float], float]:
+    """
+    Perform a cost-benefit search using ternary search to find the budget
+    that achieves the highest profit.
+    """
+
+    lo = 0.0
+    hi = float(len(nested_solution))
+
+    def compute_profit(budget: float) -> float:
+        budget_dict = assemble_dict(nested_solution, budget)
+        influence = fi.compute_fractional_influence(
+            graph_model, budget_dict, num_trials=num_trials
+        )
+        return influence * profit_per_node - budget * cost_per_unit
+
+    while lo + eps < hi:
+        print(lo, hi)
+        mid_budget = (hi - lo) / 2 + lo
+
+        budget_dict = assemble_dict(nested_solution, mid_budget)
+
+        influence = fi.compute_fractional_influence(
+            graph_model, budget_dict, num_trials=num_trials
+        )
+        total_profit = influence * profit_per_node
+
+        if total_profit >= desired_profit:
+            hi = mid_budget
+        else:
+            lo = mid_budget
+
+    # NOTE this code makes sure that the final output is the right thing (we want lo, not hi _I think_)
+    # final_profit = fi.compute_fractional_influence(
+    #     graph_model, budget_dict, num_trials=num_trials
+    # )
+    # total_profit = final_profit * profit_per_node
+    # print(total_profit)
+
+    budget_dict = assemble_dict(nested_solution, hi)
+
+    influence = fi.compute_fractional_influence(
+        graph_model, budget_dict, num_trials=num_trials
+    )
+
+    return hi, budget_dict, influence * profit_per_node
+
+
+def tradeoff_im_experiments() -> None:
+    graphs = [
+        dm.get_graph("wikipedia"),
+        dm.get_graph("facebook"),
+        dm.get_graph("deezer"),
+        dm.get_graph("amazon"),
+        dm.get_graph("dblp"),
+    ]
+
+    result_dicts = []
+    eps = 0.1
+
+    for graph in graphs:
+        print(f"starting selection on graph {graph.name}")
+        model, _ = networkx_to_ic_model(graph)
+        vertices, _ = rs.ris_im(graph, 20)
+
+        print("Running algo")
+        start = time.perf_counter()
+        budget, selection, total_profit = mle_selection(
+            vertices, model, 1.0, 10.0, eps=eps
+        )
+        end = time.perf_counter()
+
+        result_dicts.append(
+            {
+                "graph": graph.name,
+                "actual profit": total_profit,
+                "used budget": budget,
+                "time taken": end - start,
+                "eps": eps,
+            }
+        )
+
+    # From result dicts, turn into a CSV
+    df = pd.DataFrame(result_dicts)
+    df.to_csv("mle_selection_benchmark_results.csv")
+
+
 if __name__ == "__main__":
-    selection_im_experiments()
+    tradeoff_im_experiments()

@@ -12,13 +12,18 @@ def compute_fractional_influence(
     random_seed: int = 12345,
     num_trials: int = 10_000,
 ) -> float:
-    random.seed(12345)
+    random.seed(random_seed)
     # TODO this stuff is weird
     # node_discount_probas = []
     # for node, y_val in frac_alloc_dict.items():
     #    node_discount_probas.append((node, a_list[node] * y_val + b_list[node]))
 
     total_activated = 0.0
+
+    seeds, probs = list(zip(*frac_alloc_dict.items()))  # Unzip dict
+    print(seeds)
+    print(probs)
+    exit()
 
     for _ in range(num_trials):
         model.reset_model()
