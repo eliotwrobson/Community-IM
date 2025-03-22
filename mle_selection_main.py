@@ -1,8 +1,9 @@
 import time
 
+import networkx as nx
 import pandas as pd
 from cynetdiff.models import IndependentCascadeModel
-from cynetdiff.utils import networkx_to_ic_model
+from cynetdiff.utils import networkx_to_ic_model, set_activation_weighted_cascade
 
 import dataset_manager as dm
 import frac_influence as fi
@@ -201,5 +202,72 @@ def tradeoff_im_experiments() -> None:
     df.to_csv("tradeoff_selection_benchmark_results.csv")
 
 
+def florentine_families_experiment() -> None:
+    florentine_families = nx.florentine_families_graph().to_directed()
+
+    set_activation_weighted_cascade(florentine_families)
+    florentine_families.name = "florentine_families"
+    florentine_families.weighting_scheme = "weighted_cascade"
+
+    model, node_mapping = networkx_to_ic_model(florentine_families)
+    vertices, _ = rs.ris_im(florentine_families, 10)
+    eps = 0.1
+
+    back_map = {
+        v: k for k, v in node_mapping.items()
+    }  # Map from model node IDs to original graph node IDs
+
+    def convert_selection(selection: dict[int, float]) -> dict[int, float]:
+        """Convert the selection to the original graph node IDs."""
+        return {back_map[k]: v for k, v in selection.items()}
+
+    # First, do cost-benefit search with the florentine families graph
+    # using a profit per node of 1.0 and a cost per unit of 100.0
+    profit_per_node = 1.0
+    cost_per_unit = 2.0
+
+    print("Running cost-benefit search")
+
+    start = time.perf_counter()
+    budget, selection, final_profit = cost_benefit_search(
+        vertices, model, profit_per_node, cost_per_unit, eps=eps
+    )
+    end = time.perf_counter()
+
+    selection = convert_selection(selection)  # Convert to original node IDs
+
+    print(
+        f"Florentine Families Experiment:\n"
+        f"Final profit: {final_profit}\n"
+        f"Profit per node: {profit_per_node}\n"
+        f"Cost per unit: {cost_per_unit}\n"
+        f"Used budget: {budget}\n"
+        f"Time taken: {end - start}\n"
+        f"Epsilon: {eps}\n"
+        f"Selection: {selection}\n"
+    )
+
+    # Now, do the MLE selection with the florentine families graph
+    # using a desired profit of 9
+    desired_profit = 9.0
+    start = time.perf_counter()
+    budget, selection, total_profit = mle_selection(
+        vertices, model, 1.0, desired_profit, eps=eps
+    )
+    end = time.perf_counter()
+
+    selection = convert_selection(selection)  # Convert to original node IDs
+
+    print(
+        f"Florentine Families Experiment (MLE Selection):\n"
+        f"Desired profit: {desired_profit}\n"
+        f"Actual profit: {total_profit}\n"
+        f"Used budget: {budget}\n"
+        f"Time taken: {end - start}\n"
+        f"Epsilon: {eps}\n"
+        f"Selection: {selection}\n"
+    )
+
+
 if __name__ == "__main__":
-    tradeoff_im_experiments()
+    florentine_families_experiment()
