@@ -210,7 +210,10 @@ def florentine_families_experiment() -> None:
     florentine_families.weighting_scheme = "weighted_cascade"
 
     model, node_mapping = networkx_to_ic_model(florentine_families)
-    vertices, _ = rs.ris_im(florentine_families, 10)
+    vertices = [1, 12, 9]
+    # print(node_mapping)
+    # exit()
+
     eps = 0.1
 
     back_map = {
@@ -220,6 +223,11 @@ def florentine_families_experiment() -> None:
     def convert_selection(selection: dict[int, float]) -> dict[int, float]:
         """Convert the selection to the original graph node IDs."""
         return {back_map[k]: v for k, v in selection.items()}
+
+    # selection = dict(zip(vertices, [1.0, 1.0, 1.0]))
+    # influence = fi.compute_fractional_influence(model, selection, num_trials=10_000)
+    # print(convert_selection(selection), influence)
+    # exit()
 
     # First, do cost-benefit search with the florentine families graph
     # using a profit per node of 1.0 and a cost per unit of 100.0
