@@ -269,7 +269,7 @@ def celf(
 
     # First, compute all marginal gains
     marg_gain = [
-        (-model.compute_marginal_gain([node], None, num_trials=num_trials), node)
+        (-model.compute_marginal_gains([node], [], num_trials=num_trials)[0], node)
         for node in tqdm.tqdm(nodes, leave=False)
     ]
 
@@ -293,7 +293,9 @@ def celf(
                 new_mg = celf_pp_cache[current_node]
                 break
 
-            new_mg = model.compute_marginal_gain(S, current_node, num_trials=num_trials)
+            new_mg = model.compute_marginal_gains(
+                S, [current_node], num_trials=num_trials
+            )[0]
 
             celf_pp_cache[current_node] = new_mg
 
