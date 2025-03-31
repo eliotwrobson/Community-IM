@@ -84,11 +84,11 @@ def cd_im(
         # Running lim software which is written in C and saving the outputs
         os.chdir(lim_folder + "/src")
         os.system("make")
-        start = timeit.default_timer()
+        # start = timeit.default_timer()
         # TODO algorithm is hardcoded. Add as a parameter with a key.
         os.system(f"./run 3 {file_name_string}")
-        end = timeit.default_timer()
-        runtime = end - start
+        # end = timeit.default_timer()
+        # runtime = end - start
         os.chdir("..")
         os.chdir("..")
 
@@ -197,11 +197,11 @@ def ud_im(
         # Running lim software which is written in C and saving the outputs
         os.chdir(lim_folder + "/src")
         os.system("make")
-        start = timeit.default_timer()
+        # start = timeit.default_timer()
         # TODO algorithm is hardcoded. Add as a parameter with a key.
         os.system(f"./run 4 {file_name_string}")
-        end = timeit.default_timer()
-        runtime = end - start
+        # end = timeit.default_timer()
+        # runtime = end - start
         os.chdir("..")
         os.chdir("..")
 
