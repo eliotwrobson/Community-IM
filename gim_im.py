@@ -113,7 +113,7 @@ def gim_im(
         data["payoff"] = a_val
 
     # TODO double check that we set the weighting scheme outside of this.
-    model, _ = networkx_to_ic_model(network)
+    model, _ = networkx_to_ic_model(network, rng=random_seed)
     # We run our algorithm natively using cynetdiff
 
     # Storing the result vector as a dict because it's sparse.

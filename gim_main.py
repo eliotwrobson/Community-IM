@@ -8,23 +8,23 @@ from gim_im import gim_im
 
 
 def main() -> None:
-    graphs = [get_graph("deezer"), get_graph("wikipedia"), get_graph("facebook")]
+    graphs = [get_graph("wikipedia"), get_graph("facebook"), get_graph("deezer")]
     k_vals = [
-        0,
-        0.5,
-        1,
-        1.5,
-        2.0,
-        2.5,
-        3.0,
-        3.5,
-        4.0,
-        4.5,
-        5.0,
+        # 0,
+        # 0.5,
+        # 1,
+        # 1.5,
+        # 2.0,
+        # 2.5,
+        # 3.0,
+        # 3.5,
+        # 4.0,
+        # 4.5,
+        # 5.0,
         5.5,
-        6.0,
-        6.5,
-        7.0,
+        # 6.0,
+        # 6.5,
+        # 7.0,
     ]  # , 5, 10, 15, 20]
     a_vals = [(1.0,), (1.0, 0.5)]
     b_vals = [(0.0,), (0.2, 0.0)]
