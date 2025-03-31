@@ -10,31 +10,20 @@ on:
     branches: ["*"]
 
 jobs:
-  lint:
+  test:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
-        with:
-          submodules: recursive
-
-      - name: Install Python 3
-        uses: actions/setup-python@v3
-        with:
-          python-version: "3.11"
-
-      - name: Install Poetry
-        uses: snok/install-poetry@v1
-        with:
-          virtualenvs-create: true
-          virtualenvs-in-project: true
-          installer-parallel: true
-
-      - name: Install Environment
-        run: poetry install --no-root --sync
-
-      - name: Run mypy
-        run: poetry run mypy .
-
-      - name: Run ruff
-        run: poetry run ruff check .
+      - uses: actions/checkout@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+      - name: Check lockfile
+        run: uv lock --check
+      - name: Lint with ruff
+        run: |
+          # Fail if codebase contains any of these issues
+          uv run ruff check .
+          uv run ruff format --check .
+      - name: Static Typechecking with mypy
+        run: |
+          uv run mypy --config-file pyproject.toml .
