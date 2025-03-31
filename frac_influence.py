@@ -24,3 +24,39 @@ def compute_fractional_influence(
         total_activated += model.get_num_activated_nodes()
 
     return total_activated / num_trials
+
+
+def compute_fractional_influence_linear(
+    model: IndependentCascadeModel,
+    frac_alloc_dict: dict[int, float],
+    a_dict: dict[int, float],
+    b_dict: dict[int, float],
+    *,
+    num_trials: int = 10_000,
+) -> float:
+    """
+    Computes the expected number of activated nodes given a fractional allocation.
+    This is a linear approximation for the influence spread.
+    """
+    total_activated = 0.0
+
+    seeds = []
+    probs = []
+
+    for node, prob in frac_alloc_dict.items():
+        # Calculate the expected influence of each node based on a and b values
+        # This is a linear approximation
+        a_val = a_dict[node]
+        b_val = b_dict[node]
+
+        seeds.append(node)
+        probs.append(a_val * prob + b_val)
+
+    model.set_seeds(seeds, probs)
+
+    for _ in range(num_trials):
+        model.reset_model()
+        model.advance_until_completion()
+        total_activated += model.get_num_activated_nodes()
+
+    return total_activated / num_trials

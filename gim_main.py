@@ -4,7 +4,7 @@ import time
 import pandas as pd
 
 from dataset_manager import get_graph
-from gim_im import simple_greedy
+from gim_im import gim_im
 
 
 def main() -> None:
@@ -38,7 +38,7 @@ def main() -> None:
         print(f"Workload {i} / {len(workloads)}")
         i += 1
         start_time = time.perf_counter()
-        discount_dict, frac_influence = simple_greedy(
+        discount_dict, frac_influence = gim_im(
             graph, k, a_vals=a_val_tup, b_vals=b_val_tup
         )
         end_time = time.perf_counter()
