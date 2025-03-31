@@ -50,7 +50,13 @@ def compute_fractional_influence_linear(
         b_val = b_dict[node]
 
         seeds.append(node)
-        probs.append(a_val * prob + b_val)
+
+        prob = a_val * prob + b_val
+
+        if not (0.0 <= prob <= 1.0):
+            raise ValueError(f"Invalid pobability computed for node: {prob}")
+
+        probs.append(prob)
 
     model.set_seeds(seeds, probs)
 

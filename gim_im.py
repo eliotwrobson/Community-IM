@@ -167,11 +167,13 @@ def gim_im(
         seed_set.add(current_node)
         heapq.heappop(marg_gain_heap)
 
-    print(
-        "Avg influence of final seed set:",
-        model.compute_marginal_gains(seed_set, [], num_trials=num_trials)[0],
-    )
-    print(f"Sum total: {sum_total}, Budget: {budget}")
-    return discount_dict, compute_fractional_influence_linear(
+    avg_influence = compute_fractional_influence_linear(
         model, discount_dict, a_dict, b_dict
     )
+
+    print(
+        "Avg influence of final seed set:",
+        avg_influence,
+    )
+    print(f"Sum total: {sum_total}, Budget: {budget}")
+    return discount_dict, avg_influence
