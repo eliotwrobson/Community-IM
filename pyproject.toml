@@ -22,7 +22,7 @@ dependencies = [
   "setuptools~=69.0.3",
   "cynetdiff==0.1.16",
   "pooch~=1.8.2",
-  "heapdict~=1.0.1",
+  "depqdict",
 ]
 
 [tool.uv]
@@ -37,5 +37,6 @@ module = [
   "leidenalg.*",
   "igraph.*",
   "tikzplotlib.*",
+  "pooch.*",
 ]
 ignore_missing_imports = true

@@ -316,8 +316,8 @@ def lim_im(
 
         # Saving runtime info to a text file
         runtime_info = {"lim": runtime}
-        fstr = results_folder_runtime_files + os.sep + "runtime_info_lim.txt"
-        with open(fstr, "w") as f:
+        output_fstr = os.path.join(results_folder_runtime_files, "runtime_info_lim.txt")
+        with open(output_fstr, "w") as f:
             f.write(json.dumps(runtime_info))
 
     # Output filename for exp influences
@@ -331,10 +331,10 @@ def lim_im(
     )
 
     # Getting the best seed sets (allocations) and exp influence
-    best_seed_sets = [{}]
+    best_seed_sets: list[dict[int, float]] = [{}]
 
     for best_seed_set in open(out_filename_allocation).readlines():
-        res_dict = {}
+        res_dict: dict[int, float] = {}
 
         for i, seed_val in enumerate(map(float, best_seed_set.split(" ")[:-1])):
             if seed_val > 0.0:

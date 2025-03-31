@@ -191,7 +191,7 @@ def get_graph(
             progressbar=True,
         )
 
-        graph = dataset_info["processor"](data_path)
+        graph = dataset_info["processor"](data_path)  # type: ignore[operator]
         # TODO add different options for this
 
         if weighting_scheme == "weighted_cascade":

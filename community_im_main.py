@@ -19,7 +19,7 @@ import networkx as nx
 import tqdm
 from cynetdiff.models import IndependentCascadeModel
 from cynetdiff.utils import networkx_to_ic_model
-from heapdict import heapdict
+from depqdict import DepqDict
 
 import dataset_manager as dm
 
@@ -533,16 +533,16 @@ def degree_discount_runner(
 
     # Initialize data structures
     t_dict: defaultdict[int, int] = defaultdict(int)
-    best_node_dict = heapdict()
+    best_node_dict: DepqDict[int, float] = DepqDict()
 
     for node, out_degree in graph.out_degree():
-        best_node_dict[node] = -out_degree
+        best_node_dict[node] = out_degree
 
     seeds = []
     times_taken = []
 
     for i in range(budget):
-        node, _ = best_node_dict.popitem()
+        node, _ = best_node_dict.pop_max_item()
         end_time = time.perf_counter()
 
         seeds.append(node)
@@ -655,7 +655,7 @@ def main() -> None:
             it.product(graph_benchmark_results, budgets), total=length
         ):
             seeds = result.seeds[:budget]
-            influence = model.compute_marginal_gain(seeds, None, 10_000)
+            influence = model.compute_marginal_gains(seeds, [], 10_000)[0]
 
             write_benchmark_result(result, budget, influence)
 

@@ -78,7 +78,7 @@ version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
     { name = "cynetdiff" },
-    { name = "heapdict" },
+    { name = "depqdict" },
     { name = "igraph" },
     { name = "leidenalg" },
     { name = "matplotlib" },
@@ -101,7 +101,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "cynetdiff", specifier = "==0.1.16" },
-    { name = "heapdict", specifier = "~=1.0.1" },
+    { name = "depqdict" },
     { name = "igraph", specifier = ">=0.10.6" },
     { name = "leidenalg", specifier = "==0.10.1" },
     { name = "matplotlib", specifier = "~=3.8.1" },
@@ -191,6 +191,15 @@ wheels = [
 ]
 
 [[package]]
+name = "depqdict"
+version = "0.1.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/5a/b0/0a666363306520dee9b87812ef833eb3dbe9196ac5266779bae0c51733a8/depqdict-0.1.1.tar.gz", hash = "sha256:0073963c89f15da8e81086222ac4e47a5f22591877fdb73aaf911db293473e1d", size = 38436 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/06/79/9b62d12aa524d2a4cc7a9cef08688a819d11c568479f5043f924b453d142/depqdict-0.1.1-py3-none-any.whl", hash = "sha256:7ac1df4845fb72dcec9fbc53df7d272601ff4e27e552e0c0915fd6249578bb8c", size = 17954 },
+]
+
+[[package]]
 name = "fonttools"
 version = "4.56.0"
 source = { registry = "https://pypi.org/simple" }
@@ -221,15 +230,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/ea/e0/46f9600c39c644b54e4420f941f75fa200d9288c9ae171e5d80918b8cbb9/fonttools-4.56.0-cp313-cp313-win32.whl", hash = "sha256:d0cb73ccf7f6d7ca8d0bc7ea8ac0a5b84969a41c56ac3ac3422a24df2680546f", size = 2140927 },
     { url = "https://files.pythonhosted.org/packages/27/6d/3edda54f98a550a0473f032d8050315fbc8f1b76a0d9f3879b72ebb2cdd6/fonttools-4.56.0-cp313-cp313-win_amd64.whl", hash = "sha256:62cc1253827d1e500fde9dbe981219fea4eb000fd63402283472d38e7d8aa1c6", size = 2186709 },
     { url = "https://files.pythonhosted.org/packages/bf/ff/44934a031ce5a39125415eb405b9efb76fe7f9586b75291d66ae5cbfc4e6/fonttools-4.56.0-py3-none-any.whl", hash = "sha256:1088182f68c303b50ca4dc0c82d42083d176cba37af1937e1a976a31149d4d14", size = 1089800 },
-]
-
-[[package]]
-name = "heapdict"
-version = "1.0.1"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/5a/9b/d8963ae7e388270b695f3b556b6dc9adb70ae9618fba09aa1e7b1886652d/HeapDict-1.0.1.tar.gz", hash = "sha256:8495f57b3e03d8e46d5f1b2cc62ca881aca392fd5cc048dc0aa2e1a6d23ecdb6", size = 4274 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/b6/9d/cd4777dbcf3bef9d9627e0fe4bc43d2e294b1baeb01d0422399d5e9de319/HeapDict-1.0.1-py3-none-any.whl", hash = "sha256:6065f90933ab1bb7e50db403b90cab653c853690c5992e69294c2de2b253fc92", size = 3917 },
 ]
 
 [[package]]
