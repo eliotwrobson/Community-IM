@@ -1,5 +1,6 @@
 import random
 
+import networkx as nx
 import tqdm
 from cynetdiff.models import IndependentCascadeModel
 
@@ -29,8 +30,7 @@ def compute_fractional_influence(
 def compute_fractional_influence_linear(
     model: IndependentCascadeModel,
     frac_alloc_dict: dict[int, float],
-    a_dict: dict[int, float],
-    b_dict: dict[int, float],
+    network: nx.DiGraph,
     *,
     num_trials: int = 10_000,
 ) -> float:
@@ -46,8 +46,8 @@ def compute_fractional_influence_linear(
     for node, prob in frac_alloc_dict.items():
         # Calculate the expected influence of each node based on a and b values
         # This is a linear approximation
-        a_val = a_dict[node]
-        b_val = b_dict[node]
+        a_val = network.nodes[node]["a"]
+        b_val = network.nodes[node]["b"]
 
         seeds.append(node)
 
