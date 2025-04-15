@@ -27,3 +27,25 @@ nosetests.xml
 
 # MyPy
 .mypy_cache
+
+# Graph files
+*.graph
+*.probdist
+
+# Compiled executables
+ris_code_release/subsim
+lim_code_release/src/run
+
+# Complied files
+*.o
+*.txt
+*.csv
+
+# Results from running
+ris_code_release/result/*
+ris_code_release/graphInfo/*
+lim_code_release/allocation/*
+
+*.db.*
+benchmark_result.json
+*.db

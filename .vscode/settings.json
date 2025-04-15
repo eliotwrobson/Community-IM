@@ -1,5 +1,7 @@
 {
-  "python.analysis.extraPaths": [".virtualenv"],
+  "python.analysis.extraPaths": [
+    ".virtualenv"
+  ],
   "[python]": {
     "editor.formatOnSave": true,
     "editor.codeActionsOnSave": {
@@ -10,6 +12,9 @@
   },
   "[toml]": {
     "editor.defaultFormatter": "tamasfe.even-better-toml",
+    "editor.formatOnSave": true
+  },
+  "[json]": {
     "editor.formatOnSave": true
   },
   "files.trimTrailingWhitespace": true,
