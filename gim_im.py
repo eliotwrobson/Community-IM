@@ -92,7 +92,7 @@ def gim_im(
     *,
     random_seed: int = 12345,
     num_trials: int = 1_000,  # TODO this should be passed in from the outside
-):
+) -> tuple[list[tuple[int, float]], float]:
     num_nodes = network.number_of_nodes()
     node_scaling: dict[int, float] = {}
 
@@ -118,7 +118,7 @@ def gim_im(
     heapq.heapify(marg_gain_heap)
 
     # Storing the result vector as a dict because it's sparse.
-    discount_dict: dict[int, float] = {}
+    discount_dict: list[tuple[int, float]] = []
     sum_total = 0.0
     weighted_total = 0.0
     seed_set: set[int] = set()
@@ -152,13 +152,15 @@ def gim_im(
         curr_node_weight = network.nodes[current_node]["w"]
 
         # TODO double check this is the correct way to assign this.
-        discount_dict[current_node] = min(
+        curr_val = min(
             (1.0 - network.nodes[current_node]["b"]) / network.nodes[current_node]["a"],
             (budget - weighted_total) / curr_node_weight,
         )
 
-        sum_total += discount_dict[current_node]
-        weighted_total += discount_dict[current_node] * curr_node_weight
+        sum_total += curr_val
+        weighted_total += curr_val * curr_node_weight
+
+        discount_dict.append((current_node, curr_val))
 
         seed_set.add(current_node)
         heapq.heappop(marg_gain_heap)

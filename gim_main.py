@@ -5,8 +5,10 @@ from itertools import count
 
 import networkx as nx
 import pandas as pd
+from cynetdiff.utils import networkx_to_ic_model
 
 from dataset_manager import get_graph
+from frac_influence import compute_fractional_influence_linear
 from gim_im import gim_im
 
 RANDOM_SEED = 12345
@@ -35,7 +37,83 @@ def set_weights_and_labels(
         data["b"] = random.choice(b_vals)
 
 
+def optimum_budget_selection(
+    graph: nx.DiGraph,
+    price_per_unit: float,
+    cost_per_unit: float,
+    *,
+    max_budget: float = 20.0,
+    epsilon: float = 0.01,
+    random_seed: int = 12345,
+) -> tuple[float, float]:
+    """
+    For a given graph, selects the budget that gives the optimal payoff. The payoff is
+    defined as:
+
+        price per unit * influence - cost per unit * budget
+
+    Uses the fact that solution is nested to find the optimal budget.
+    """
+
+    discount_dict, frac_influence = gim_im(graph, max_budget, random_seed=random_seed)
+    model, _ = networkx_to_ic_model(graph, rng=random_seed)
+
+    low = 0.0
+    high = max_budget
+
+    while low + epsilon < high:
+        # Midpoint computations for ternary search
+        mid1 = low + (high - low) / 3.0
+        mid2 = high - (high - low) / 3.0
+
+        frac_influence1 = compute_fractional_influence_linear(
+            model, discount_dict, graph, budget=mid1
+        )
+        frac_influence2 = compute_fractional_influence_linear(
+            model, discount_dict, graph, budget=mid2
+        )
+
+        # Calculate the payoff
+        payoff1 = price_per_unit * frac_influence1 - cost_per_unit * mid1
+        payoff2 = price_per_unit * frac_influence2 - cost_per_unit * mid2
+
+        if payoff1 < payoff2:
+            low = mid1
+        else:
+            high = mid2
+
+    # Return the optimal budget and the corresponding payoff
+    return high, compute_fractional_influence_linear(
+        model, discount_dict, graph, budget=high
+    )
+
+
 def main() -> None:
+    graph = get_graph("wikipedia")
+    price_per_unit = 1.0
+    cost_per_unit = 0.5
+    max_budget = 5.0
+
+    set_weights_and_labels(
+        w_vals=(1.0, 0.5),
+        a_vals=(1.0, 0.5),
+        b_vals=(0.2, 0.0),
+        graph=graph,
+        seed=RANDOM_SEED,
+    )
+
+    res = optimum_budget_selection(
+        graph,
+        price_per_unit,
+        cost_per_unit,
+        max_budget=max_budget,
+        random_seed=RANDOM_SEED,
+    )
+
+    print(res)
+
+
+def main2() -> None:
     graphs = [get_graph("wikipedia")]  # , get_graph("facebook"), get_graph("deezer")]
     k_vals = [
         0,
