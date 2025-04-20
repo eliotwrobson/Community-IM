@@ -43,7 +43,7 @@ def optimum_budget_selection(
     cost_per_unit: float,
     *,
     max_budget: float = 20.0,
-    epsilon: float = 0.01,
+    epsilon: float = 0.1,
     random_seed: int = 12345,
 ) -> tuple[float, float]:
     """
@@ -62,6 +62,7 @@ def optimum_budget_selection(
     high = max_budget
 
     while low + epsilon < high:
+        print(low, high)
         # Midpoint computations for ternary search
         mid1 = low + (high - low) / 3.0
         mid2 = high - (high - low) / 3.0
@@ -93,6 +94,7 @@ def main() -> None:
     price_per_unit = 1.0
     cost_per_unit = 0.5
     max_budget = 5.0
+    eps = 0.1
 
     set_weights_and_labels(
         w_vals=(1.0, 0.5),
@@ -108,6 +110,7 @@ def main() -> None:
         cost_per_unit,
         max_budget=max_budget,
         random_seed=RANDOM_SEED,
+        epsilon=eps,
     )
 
     print(res)
