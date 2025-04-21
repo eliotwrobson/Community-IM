@@ -58,6 +58,13 @@ def optimum_budget_selection(
     discount_dict, frac_influence = gim_im(graph, max_budget, random_seed=random_seed)
     model, _ = networkx_to_ic_model(graph, rng=random_seed)
 
+    def compute_payoff(curr_budget: float) -> float:
+        # Compute the expected influence for the current budget
+        frac_influence = compute_fractional_influence_linear(
+            model, discount_dict, graph, budget=curr_budget
+        )
+        return price_per_unit * frac_influence - cost_per_unit * curr_budget
+
     low = 0.0
     high = max_budget
 
@@ -67,16 +74,9 @@ def optimum_budget_selection(
         mid1 = low + (high - low) / 3.0
         mid2 = high - (high - low) / 3.0
 
-        frac_influence1 = compute_fractional_influence_linear(
-            model, discount_dict, graph, budget=mid1
-        )
-        frac_influence2 = compute_fractional_influence_linear(
-            model, discount_dict, graph, budget=mid2
-        )
-
         # Calculate the payoff
-        payoff1 = price_per_unit * frac_influence1 - cost_per_unit * mid1
-        payoff2 = price_per_unit * frac_influence2 - cost_per_unit * mid2
+        payoff1 = compute_payoff(mid1)
+        payoff2 = compute_payoff(mid2)
 
         print("Mid1 with payoff: ", mid1, payoff1)
         print("Mid2 with payoff: ", mid2, payoff2)
@@ -95,8 +95,8 @@ def optimum_budget_selection(
 def main() -> None:
     graphs = [get_graph("wikipedia"), get_graph("facebook"), get_graph("deezer")]
     price_per_unit = 1.0
-    cost_per_unit = 0.5
-    max_budget = 5.0
+    cost_per_unit = 100.0
+    max_budget = 8.0
     eps = 0.1
 
     for graph in graphs:
