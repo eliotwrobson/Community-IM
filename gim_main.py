@@ -87,9 +87,7 @@ def optimum_budget_selection(
             high = mid2
 
     # Return the optimal budget and the corresponding payoff
-    return high, compute_fractional_influence_linear(
-        model, discount_dict, graph, budget=high
-    )
+    return high, compute_payoff(high)
 
 
 def main() -> None:
