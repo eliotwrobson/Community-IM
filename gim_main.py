@@ -78,6 +78,9 @@ def optimum_budget_selection(
         payoff1 = price_per_unit * frac_influence1 - cost_per_unit * mid1
         payoff2 = price_per_unit * frac_influence2 - cost_per_unit * mid2
 
+        print("Mid1 with payoff: ", mid1, payoff1)
+        print("Mid2 with payoff: ", mid2, payoff2)
+
         if payoff1 < payoff2:
             low = mid1
         else:
@@ -90,30 +93,32 @@ def optimum_budget_selection(
 
 
 def main() -> None:
-    graph = get_graph("wikipedia")
+    graphs = [get_graph("wikipedia"), get_graph("facebook"), get_graph("deezer")]
     price_per_unit = 1.0
     cost_per_unit = 0.5
     max_budget = 5.0
     eps = 0.1
 
-    set_weights_and_labels(
-        w_vals=(1.0, 0.5),
-        a_vals=(1.0, 0.5),
-        b_vals=(0.2, 0.0),
-        graph=graph,
-        seed=RANDOM_SEED,
-    )
+    for graph in graphs:
+        print(f"Starting on graph {graph.name}")
+        set_weights_and_labels(
+            w_vals=(1.0, 0.5),
+            a_vals=(1.0, 0.5),
+            b_vals=(0.2, 0.0),
+            graph=graph,
+            seed=RANDOM_SEED,
+        )
 
-    res = optimum_budget_selection(
-        graph,
-        price_per_unit,
-        cost_per_unit,
-        max_budget=max_budget,
-        random_seed=RANDOM_SEED,
-        epsilon=eps,
-    )
+        res = optimum_budget_selection(
+            graph,
+            price_per_unit,
+            cost_per_unit,
+            max_budget=max_budget,
+            random_seed=RANDOM_SEED,
+            epsilon=eps,
+        )
 
-    print(res)
+        print(res)
 
 
 def main2() -> None:
