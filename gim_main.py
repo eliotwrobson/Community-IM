@@ -127,6 +127,7 @@ def main2() -> None:
         get_graph("facebook"),
         get_graph("deezer"),
         get_graph("dblp"),
+        get_graph("amazon"),
     ]
     k_vals = [10.0]  # , 5, 10, 15, 20]
     a_vals = [(1.0, 0.5)]  # [(1.0,), (1.0, 0.5)]
