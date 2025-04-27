@@ -6,6 +6,7 @@ from itertools import count
 import networkx as nx
 import numpy as np
 import pandas as pd
+import tqdm
 from cynetdiff.utils import networkx_to_ic_model
 
 from dataset_manager import get_graph
@@ -155,7 +156,9 @@ def main2() -> None:
         time_taken = end_time - start_time
         model, _ = networkx_to_ic_model(graph, rng=RANDOM_SEED)
 
-        for curr_budget in np.arange(0.0, k + 1, 0.5):
+        print("Starting influence / budget computations")
+
+        for curr_budget in tqdm.tqdm(np.arange(0.0, k + 1, 0.5)):
             influence = compute_fractional_influence_linear(
                 model, discount_dict, graph, budget=curr_budget
             )
