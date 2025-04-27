@@ -119,13 +119,12 @@ def gim_im(
 
     # Storing the result vector as a dict because it's sparse.
     discount_dict: list[tuple[int, float]] = []
-    sum_total = 0.0
     weighted_total = 0.0
     seed_set: set[int] = set()
 
     # TODO make sure to account for floating point error
-    while sum_total < budget and len(seed_set) < num_nodes:
-        print(discount_dict, sum_total, budget)
+    while weighted_total < budget and len(seed_set) < num_nodes:
+        print(len(discount_dict), weighted_total, budget)
 
         # Code here based off of this blog post:
         # https://hautahi.com/im_greedycelf
@@ -157,7 +156,6 @@ def gim_im(
             (budget - weighted_total) / curr_node_weight,
         )
 
-        sum_total += curr_val
         weighted_total += curr_val * curr_node_weight
 
         discount_dict.append((current_node, curr_val))
@@ -171,5 +169,5 @@ def gim_im(
         "Avg influence of final seed set:",
         avg_influence,
     )
-    print(f"Sum total: {sum_total}, Budget: {budget}")
+    print(f"Sum total: {weighted_total}, Budget: {budget}")
     return discount_dict, avg_influence

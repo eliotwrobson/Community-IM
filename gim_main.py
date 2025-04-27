@@ -4,6 +4,7 @@ import time
 from itertools import count
 
 import networkx as nx
+import numpy as np
 import pandas as pd
 from cynetdiff.utils import networkx_to_ic_model
 
@@ -120,24 +121,13 @@ def main() -> None:
 
 
 def main2() -> None:
-    graphs = [get_graph("wikipedia")]  # , get_graph("facebook"), get_graph("deezer")]
-    k_vals = [
-        0,
-        0.5,
-        1,
-        1.5,
-        2.0,
-        2.5,
-        3.0,
-        3.5,
-        4.0,
-        4.5,
-        5.0,
-        5.5,
-        6.0,
-        6.5,
-        7.0,
-    ]  # , 5, 10, 15, 20]
+    graphs = [
+        get_graph("wikipedia"),
+        get_graph("facebook"),
+        get_graph("deezer"),
+        get_graph("dblp"),
+    ]
+    k_vals = [10.0]  # , 5, 10, 15, 20]
     a_vals = [(1.0, 0.5)]  # [(1.0,), (1.0, 0.5)]
     b_vals = [(0.2, 0.0)]  # [(0.0,), (0.2, 0.0)]
     w_vals = [(1.0, 0.5)]  # [(1.0,), (1.0, 0.5)]
@@ -163,20 +153,27 @@ def main2() -> None:
         discount_dict, frac_influence = gim_im(graph, k)
         end_time = time.perf_counter()
         time_taken = end_time - start_time
+        model, _ = networkx_to_ic_model(graph, rng=RANDOM_SEED)
 
-        workload_dict = {
-            "graph name": graph.name,
-            "num nodes": graph.number_of_nodes(),
-            "num edges": graph.number_of_edges(),
-            "k": k,
-            "a_vals": a_val_tup,
-            "b_vals": b_val_tup,
-            "fractional influence": frac_influence,
-            "time taken": time_taken,
-            "weighting scheme": graph.weighting_scheme,
-        }
+        for curr_budget in np.arange(0.0, k + 1, 0.5):
+            influence = compute_fractional_influence_linear(
+                model, discount_dict, graph, budget=curr_budget
+            )
 
-        results.append(workload_dict)
+            workload_dict = {
+                "graph name": graph.name,
+                "num nodes": graph.number_of_nodes(),
+                "num edges": graph.number_of_edges(),
+                "budget": curr_budget,
+                "a_vals": a_val_tup,
+                "b_vals": b_val_tup,
+                "w_vals": w_val_tup,
+                "fractional influence": influence,
+                "time taken": time_taken,
+                "weighting scheme": graph.weighting_scheme,
+            }
+
+            results.append(workload_dict)
 
     # print(discount_dict, frac_influence)
     df = pd.DataFrame(results)
@@ -184,4 +181,4 @@ def main2() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    main2()
