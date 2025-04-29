@@ -46,7 +46,7 @@ def optimum_budget_selection(
     epsilon: float = 0.1,
     random_seed: int,
     num_trials: int,
-) -> tuple[float, float, float]:
+) -> tuple[float, float, float, float]:
     """
     For a given graph, selects the budget that gives the optimal payoff. The payoff is
     defined as:
@@ -105,9 +105,15 @@ def optimum_budget_selection(
 
 
 def main(num_trials: int, random_seed: int) -> None:
-    graphs = [get_graph("wikipedia"), get_graph("facebook"), get_graph("deezer")]
+    graphs = [
+        get_graph("wikipedia"),
+        get_graph("facebook"),
+        get_graph("deezer"),
+        get_graph("dblp"),
+        get_graph("amazon"),
+    ]
     price_per_unit = 1.0
-    cost_per_unit = 100.0
+    cost_per_unit = 120.0
     max_budget = 8.0
     eps = 0.1
 
@@ -238,4 +244,4 @@ def main2(num_trials: int, random_seed: int) -> None:
 
 
 if __name__ == "__main__":
-    main(num_trials=10_000, random_seed=RANDOM_SEED)
+    main2(num_trials=10_000, random_seed=RANDOM_SEED)
