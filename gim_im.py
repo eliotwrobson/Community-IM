@@ -121,7 +121,7 @@ def gim_im(
     heapq.heapify(marg_gain_heap)
 
     # Storing the result vector as a dict because it's sparse.
-    discount_dict: list[tuple[int, float]] = []
+    discount_dict: list[tuple[int, float, float]] = []
     weighted_total = 0.0
     seed_set: set[int] = set()
 
@@ -162,7 +162,7 @@ def gim_im(
         weighted_total += curr_val * curr_node_weight
         curr_time = time.perf_counter()
 
-        discount_dict.append((current_node, curr_val, curr_time - start_time))
+        discount_dict.append((current_node, weighted_total, curr_time - start_time))
 
         seed_set.add(current_node)
         heapq.heappop(marg_gain_heap)
