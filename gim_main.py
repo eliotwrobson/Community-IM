@@ -4,9 +4,7 @@ import time
 from itertools import count
 
 import networkx as nx
-import numpy as np
 import pandas as pd
-import tqdm
 from cynetdiff.utils import networkx_to_ic_model
 
 from dataset_manager import get_graph
@@ -21,7 +19,7 @@ def set_weights_and_labels(
     a_vals: tuple[float, ...],
     b_vals: tuple[float, ...],
     graph: nx.DiGraph,
-    seed: int = 12345,
+    seed: int,
 ) -> None:
     """
     Randomly assigns weights and labels to the nodes of the graph.
@@ -46,8 +44,9 @@ def optimum_budget_selection(
     *,
     max_budget: float = 20.0,
     epsilon: float = 0.1,
-    random_seed: int = 12345,
-) -> tuple[float, float]:
+    random_seed: int,
+    num_trials: int,
+) -> tuple[float, float, float]:
     """
     For a given graph, selects the budget that gives the optimal payoff. The payoff is
     defined as:
@@ -60,12 +59,21 @@ def optimum_budget_selection(
     discount_dict, frac_influence = gim_im(graph, max_budget, random_seed=random_seed)
     model, _ = networkx_to_ic_model(graph, rng=random_seed)
 
+    search_time = discount_dict[-1][2]
+
     def compute_payoff(curr_budget: float) -> float:
         # Compute the expected influence for the current budget
         frac_influence = compute_fractional_influence_linear(
-            model, discount_dict, graph, budget=curr_budget
+            model,
+            discount_dict,
+            graph,
+            budget=curr_budget,
+            random_seed=random_seed,
+            num_trials=num_trials,
         )
         return price_per_unit * frac_influence - cost_per_unit * curr_budget
+
+    start_time = time.perf_counter()
 
     low = 0.0
     high = max_budget
@@ -88,40 +96,73 @@ def optimum_budget_selection(
         else:
             high = mid2
 
+    end_time = time.perf_counter()
+
     # Return the optimal budget and the corresponding payoff
-    return high, compute_payoff(high)
+    return high, compute_payoff(high), end_time - start_time, search_time
 
 
-def main() -> None:
+def main(num_trials: int, random_seed: int) -> None:
     graphs = [get_graph("wikipedia"), get_graph("facebook"), get_graph("deezer")]
     price_per_unit = 1.0
     cost_per_unit = 100.0
     max_budget = 8.0
     eps = 0.1
 
+    results = []
+
+    w_val_tup = (1.0, 0.5)
+    a_val_tup = (1.0, 0.5)
+    b_val_tup = (0.2, 0.0)
+
     for graph in graphs:
         print(f"Starting on graph {graph.name}")
         set_weights_and_labels(
-            w_vals=(1.0, 0.5),
-            a_vals=(1.0, 0.5),
-            b_vals=(0.2, 0.0),
+            w_vals=w_val_tup,
+            a_vals=a_val_tup,
+            b_vals=b_val_tup,
             graph=graph,
-            seed=RANDOM_SEED,
+            seed=random_seed,
         )
 
-        res = optimum_budget_selection(
+        budget, payoff, search_time, initial_time = optimum_budget_selection(
             graph,
             price_per_unit,
             cost_per_unit,
             max_budget=max_budget,
-            random_seed=RANDOM_SEED,
+            random_seed=random_seed,
             epsilon=eps,
+            num_trials=num_trials,
         )
 
-        print(res)
+        workload_dict = {
+            "price per unit": price_per_unit,
+            "cost per unit": cost_per_unit,
+            "graph name": graph.name,
+            "eps": eps,
+            "num nodes": graph.number_of_nodes(),
+            "num edges": graph.number_of_edges(),
+            "num trials": num_trials,
+            "budget": budget,
+            "payoff": payoff,
+            "max budget": max_budget,
+            "a_vals": a_val_tup,
+            "b_vals": b_val_tup,
+            "w_vals": w_val_tup,
+            "time taken": search_time,
+            "initial time": initial_time,
+            "weighting scheme": graph.weighting_scheme,
+        }
+
+        results.append(workload_dict)
+
+        print(budget, payoff)
+
+    df = pd.DataFrame(results)
+    df.to_csv("optimal_budget_results.csv")
 
 
-def main2() -> None:
+def main2(num_trials: int, random_seed: int) -> None:
     graphs = [
         get_graph("wikipedia"),
         get_graph("facebook"),
@@ -129,7 +170,7 @@ def main2() -> None:
         get_graph("dblp"),
         get_graph("amazon"),
     ]
-    k_vals = [10.0]  # , 5, 10, 15, 20]
+    k_vals = [7.0]  # , 5, 10, 15, 20]
     a_vals = [(1.0, 0.5)]  # [(1.0,), (1.0, 0.5)]
     b_vals = [(0.2, 0.0)]  # [(0.0,), (0.2, 0.0)]
     w_vals = [(1.0, 0.5)]  # [(1.0,), (1.0, 0.5)]
@@ -147,33 +188,43 @@ def main2() -> None:
             a_vals=a_val_tup,
             b_vals=b_val_tup,
             graph=graph,
-            seed=RANDOM_SEED,
+            seed=random_seed,
         )
 
-        start_time = time.perf_counter()
-
-        discount_dict, frac_influence = gim_im(graph, k)
-        end_time = time.perf_counter()
-        time_taken = end_time - start_time
-        model, _ = networkx_to_ic_model(graph, rng=RANDOM_SEED)
+        discount_dict, _ = gim_im(
+            graph, k, num_trials=num_trials // 10, random_seed=random_seed
+        )
+        model, _ = networkx_to_ic_model(graph, rng=random_seed)
 
         print("Starting influence / budget computations")
 
-        for curr_budget in tqdm.tqdm(np.arange(0.0, k + 1, 0.5)):
+        curr_list = []
+        for curr_budget_item in discount_dict:
+            curr_time = curr_budget_item[2]
+            curr_list.append(curr_budget_item)
             influence = compute_fractional_influence_linear(
-                model, discount_dict, graph, budget=curr_budget
+                model,
+                curr_list,
+                graph,
+                budget=None,
+                num_trials=num_trials,
+                random_seed=random_seed,
             )
+
+            curr_budget = sum(item for _, item, _ in curr_list)
 
             workload_dict = {
                 "graph name": graph.name,
                 "num nodes": graph.number_of_nodes(),
                 "num edges": graph.number_of_edges(),
+                "num nodes in seed set": len(curr_list),
+                "num trials": num_trials,
                 "budget": curr_budget,
                 "a_vals": a_val_tup,
                 "b_vals": b_val_tup,
                 "w_vals": w_val_tup,
                 "fractional influence": influence,
-                "time taken": time_taken,
+                "time taken": curr_time,
                 "weighting scheme": graph.weighting_scheme,
             }
 
@@ -185,4 +236,4 @@ def main2() -> None:
 
 
 if __name__ == "__main__":
-    main2()
+    main(num_trials=10_000, random_seed=RANDOM_SEED)

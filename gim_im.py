@@ -5,6 +5,7 @@ function. Uses the CELF optimization.
 """
 
 import heapq
+import time
 
 import networkx as nx
 import tqdm
@@ -92,9 +93,11 @@ def gim_im(
     *,
     random_seed: int = 12345,
     num_trials: int = 1_000,  # TODO this should be passed in from the outside
-) -> tuple[list[tuple[int, float]], float]:
+) -> tuple[list[tuple[int, float, float]], float]:
     num_nodes = network.number_of_nodes()
     node_scaling: dict[int, float] = {}
+
+    start_time = time.perf_counter()
 
     for node, data in network.nodes(data=True):
         # f_inv_dict[node] = (1.0 - b_val) / a_val
@@ -157,8 +160,9 @@ def gim_im(
         )
 
         weighted_total += curr_val * curr_node_weight
+        curr_time = time.perf_counter()
 
-        discount_dict.append((current_node, curr_val))
+        discount_dict.append((current_node, curr_val, curr_time - start_time))
 
         seed_set.add(current_node)
         heapq.heappop(marg_gain_heap)
