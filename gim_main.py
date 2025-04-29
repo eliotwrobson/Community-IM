@@ -57,7 +57,7 @@ def optimum_budget_selection(
     """
 
     discount_dict, frac_influence = gim_im(
-        graph, max_budget, random_seed=random_seed, num_trials=num_trials
+        graph, max_budget, random_seed=random_seed, num_trials=num_trials // 10
     )
     model, _ = networkx_to_ic_model(graph, rng=random_seed)
 
