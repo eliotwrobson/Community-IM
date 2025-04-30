@@ -178,7 +178,7 @@ def main2(num_trials: int, random_seed: int) -> None:
         get_graph("dblp"),
         get_graph("amazon"),
     ]
-    k_vals = [3.0]  # , 5, 10, 15, 20]
+    k_vals = [10.0]  # , 5, 10, 15, 20]
     a_vals = [(1.0, 0.5)]  # [(1.0,), (1.0, 0.5)]
     b_vals = [(0.2, 0.0)]  # [(0.0,), (0.2, 0.0)]
     w_vals = [(1.0, 0.5)]  # [(1.0,), (1.0, 0.5)]
