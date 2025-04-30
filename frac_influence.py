@@ -29,7 +29,7 @@ def compute_fractional_influence(
 
 def compute_fractional_influence_linear(
     model: IndependentCascadeModel,
-    frac_alloc_dict: list[tuple[int, float, float]],
+    frac_alloc_dict: list[tuple[int, float, float, float]],
     network: nx.DiGraph,
     *,
     budget: float | None = None,
@@ -46,7 +46,7 @@ def compute_fractional_influence_linear(
 
     remainging_budget = budget if budget is not None else float("inf")
 
-    for node, discount, _ in frac_alloc_dict:
+    for node, discount, _, _ in frac_alloc_dict:
         # Calculate the expected influence of each node based on a and b values
         # This is a linear approximation
         a_val = network.nodes[node]["a"]

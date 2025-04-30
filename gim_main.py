@@ -178,7 +178,7 @@ def main2(num_trials: int, random_seed: int) -> None:
         get_graph("dblp"),
         get_graph("amazon"),
     ]
-    k_vals = [10.0]  # , 5, 10, 15, 20]
+    k_vals = [3.0]  # , 5, 10, 15, 20]
     a_vals = [(1.0, 0.5)]  # [(1.0,), (1.0, 0.5)]
     b_vals = [(0.2, 0.0)]  # [(0.0,), (0.2, 0.0)]
     w_vals = [(1.0, 0.5)]  # [(1.0,), (1.0, 0.5)]
@@ -208,7 +208,8 @@ def main2(num_trials: int, random_seed: int) -> None:
 
         curr_list = []
         for curr_budget_item in discount_dict:
-            curr_time = curr_budget_item[2]
+            _, _, curr_budget, curr_time = curr_budget_item
+
             curr_list.append(curr_budget_item)
             influence = compute_fractional_influence_linear(
                 model,
@@ -218,8 +219,6 @@ def main2(num_trials: int, random_seed: int) -> None:
                 num_trials=num_trials,
                 random_seed=random_seed,
             )
-
-            curr_budget = sum(item for _, item, _ in curr_list)
 
             workload_dict = {
                 "graph name": graph.name,
