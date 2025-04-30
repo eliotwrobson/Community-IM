@@ -61,7 +61,7 @@ def optimum_budget_selection(
     )
     model, _ = networkx_to_ic_model(graph, rng=random_seed)
 
-    search_time = discount_dict[-1][2]
+    search_time = discount_dict[-1][3]
 
     def compute_payoff(curr_budget: float) -> float:
         # Compute the expected influence for the current budget
