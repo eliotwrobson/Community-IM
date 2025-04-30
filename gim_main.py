@@ -9,7 +9,7 @@ from cynetdiff.utils import networkx_to_ic_model
 
 from dataset_manager import get_graph
 from frac_influence import compute_fractional_influence_linear
-from gim_im import gim_im
+from gim_im import gim_degree_discount, gim_im
 
 RANDOM_SEED = 12345
 
@@ -221,6 +221,46 @@ def main2(num_trials: int, random_seed: int) -> None:
             )
 
             workload_dict = {
+                "algorithm": "GIM Greedy",
+                "graph name": graph.name,
+                "num nodes": graph.number_of_nodes(),
+                "num edges": graph.number_of_edges(),
+                "num nodes in seed set": len(curr_list),
+                "num trials": num_trials,
+                "budget": curr_budget,
+                "a_vals": a_val_tup,
+                "b_vals": b_val_tup,
+                "w_vals": w_val_tup,
+                "fractional influence": influence,
+                "time taken": curr_time,
+                "weighting scheme": graph.weighting_scheme,
+            }
+
+            results.append(workload_dict)
+
+        print("Finished influence / budget computations")
+        print("Starting baseline influence computations")
+
+        discount_dict = gim_degree_discount(graph, k)
+
+        print("Starting baseline / budget computations")
+
+        curr_list = []
+        for curr_budget_item in discount_dict:
+            _, _, curr_budget, curr_time = curr_budget_item
+
+            curr_list.append(curr_budget_item)
+            influence = compute_fractional_influence_linear(
+                model,
+                curr_list,
+                graph,
+                budget=None,
+                num_trials=num_trials,
+                random_seed=random_seed,
+            )
+
+            workload_dict = {
+                "algorithm": "GIM Baseline",
                 "graph name": graph.name,
                 "num nodes": graph.number_of_nodes(),
                 "num edges": graph.number_of_edges(),
