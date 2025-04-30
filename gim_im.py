@@ -45,6 +45,11 @@ def gim_degree_discount(
 
         y_v, activation_cost = activation_cost_dict[node]
 
+        if weighted_total + activation_cost > budget:
+            # If the budget is exceeded, we need to scale down the activation cost
+            activation_cost = budget - weighted_total
+            y_v = activation_cost / graph.nodes[node]["w"]
+
         weighted_total += activation_cost
 
         seeds.append((node, y_v, weighted_total, end_time - start_time))
