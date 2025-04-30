@@ -173,10 +173,10 @@ def main(num_trials: int, random_seed: int) -> None:
 def main2(num_trials: int, random_seed: int) -> None:
     graphs = [
         get_graph("wikipedia"),
-        # get_graph("facebook"),
-        # get_graph("deezer"),
-        # get_graph("dblp"),
-        # get_graph("amazon"),
+        get_graph("facebook"),
+        get_graph("deezer"),
+        get_graph("dblp"),
+        get_graph("amazon"),
     ]
     k_vals = [10.0]  # , 5, 10, 15, 20]
     a_vals = [(1.0, 0.5)]  # [(1.0,), (1.0, 0.5)]
