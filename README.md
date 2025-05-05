@@ -1,13 +1,9 @@
 # Usage
-Follow the main.py file.
+Follow the different *_main.py files.
 
-To install dependencies, run:
+To execute, for example, run:
 ```
-poetry install
-```
-and to execute, run:
-```
-poetry run python main.py
+uv run python mle_selection_main.py
 ```
 
 
