@@ -106,14 +106,14 @@ def optimum_budget_selection(
 
 def main(num_trials: int, random_seed: int) -> None:
     graphs = [
+        get_graph("amazon"),
         get_graph("wikipedia"),
         get_graph("facebook"),
         get_graph("deezer"),
         get_graph("dblp"),
-        get_graph("amazon"),
     ]
-    price_per_unit = 1.0
-    cost_per_unit = 120.0
+    price_per_unit = 0.5
+    cost_per_unit = 80.0
     max_budget = 8.0
     eps = 0.1
 
@@ -283,4 +283,4 @@ def main2(num_trials: int, random_seed: int) -> None:
 
 
 if __name__ == "__main__":
-    main2(num_trials=10_000, random_seed=RANDOM_SEED)
+    main(num_trials=10_000, random_seed=RANDOM_SEED)

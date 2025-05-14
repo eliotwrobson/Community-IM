@@ -85,7 +85,7 @@ def selection_im_experiments() -> None:
     for graph in graphs:
         print(f"starting selection on graph {graph.name}")
         model, _ = networkx_to_ic_model(graph)
-        vertices, _ = rs.ris_im(graph, 20)
+        vertices, ris_time = rs.ris_im(graph, 20)
         for payoff in payoffs:
             print("Running algo")
             start = time.perf_counter()
@@ -102,6 +102,7 @@ def selection_im_experiments() -> None:
                     "used budget": budget,
                     "time taken": end - start,
                     "eps": eps,
+                    "ris_time": ris_time,
                 }
             )
 
@@ -159,11 +160,11 @@ def cost_benefit_search(
 
 def tradeoff_im_experiments() -> None:
     graphs = [
-        dm.get_graph("wikipedia"),
-        dm.get_graph("facebook"),
-        dm.get_graph("deezer"),
         dm.get_graph("amazon"),
         dm.get_graph("dblp"),
+        dm.get_graph("deezer"),
+        dm.get_graph("facebook"),
+        dm.get_graph("wikipedia"),
     ]
 
     result_dicts = []
@@ -172,7 +173,7 @@ def tradeoff_im_experiments() -> None:
     for graph in graphs:
         print(f"starting selection on graph {graph.name}")
         model, _ = networkx_to_ic_model(graph)
-        vertices, _ = rs.ris_im(graph, 20)
+        vertices, ris_time = rs.ris_im(graph, 20)
 
         print("Running algo")
 
@@ -194,6 +195,7 @@ def tradeoff_im_experiments() -> None:
                 "used budget": budget,
                 "time taken": end - start,
                 "eps": eps,
+                "ris_time": ris_time,
             }
         )
 
@@ -278,4 +280,4 @@ def florentine_families_experiment() -> None:
 
 
 if __name__ == "__main__":
-    florentine_families_experiment()
+    tradeoff_im_experiments()
