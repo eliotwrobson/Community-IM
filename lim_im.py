@@ -119,7 +119,7 @@ def cd_im(
     return budgets, exp_influence, run_times
 
 
-def ud_im(
+def hd_im(
     network: nx.Graph,
     *,
     lim_folder: str = "lim_code_release",  # TODO change to pathlib path

@@ -79,7 +79,7 @@ def fractional_im_experiments() -> None:
 
     cd_budgets, cd_influences, cd_times = li.cd_im(graph)
 
-    ud_budgets, ud_influences, ud_times = li.ud_im(graph)
+    hd_budgets, hd_influences, hd_times = li.hd_im(graph)
 
     graph_runtime_info = []
 
@@ -112,14 +112,14 @@ def fractional_im_experiments() -> None:
     df = pd.DataFrame(graph_runtime_info)
     df.to_csv("benchmark_results" + os.sep + f"{graph.name}_benchmark_results.csv")
 
-    # Save ud heuristic stuff
-    graph_ud_info = [
-        {"ud_budget": ud_budget, "ud_influence": ud_influnece, "ud_time": ud_time}
-        for ud_budget, ud_influnece, ud_time in zip(ud_budgets, ud_influences, ud_times)
+    # Save hd heuristic stuff
+    graph_hd_info = [
+        {"hd_budget": hd_budget, "hd_influence": hd_influnece, "hd_time": hd_time}
+        for hd_budget, hd_influnece, hd_time in zip(hd_budgets, hd_influences, hd_times)
     ]
 
-    df = pd.DataFrame(graph_ud_info)
-    df.to_csv("benchmark_results" + os.sep + f"{graph.name}_ud_results.csv")
+    df = pd.DataFrame(graph_hd_info)
+    df.to_csv("benchmark_results" + os.sep + f"{graph.name}_hd_results.csv")
 
     # Save cd heuristic stuff
     graph_cd_info = [
