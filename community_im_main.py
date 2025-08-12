@@ -299,9 +299,14 @@ def celf(
 
             celf_pp_cache[current_node] = new_mg
 
+            top_mg = -marg_gain[0][0]
+            # Sanity check so we don't do the wrong comparison
+            assert new_mg >= 0.0
+            assert top_mg >= 0.0
+
             # My own optimization: Add granularity argument to ignore
             # TODO change the marginal gain error to be a scaling factor larger than 1.0
-            if not marg_gain or new_mg * marginal_gain_error >= -marg_gain[0][0]:
+            if not marg_gain or new_mg * marginal_gain_error >= top_mg:
                 break
             else:
                 heapq.heappush(marg_gain, (-new_mg, current_node))
@@ -343,31 +348,29 @@ def get_nested_solutions(
     ]
 
     # Next, load these into a heap.
-    min_heap: list[tuple[tuple[float, int], t.Iterator[tuple[float, int]]]] = []
+    # min_heap: list[tuple[tuple[float, int], t.Iterator[tuple[float, int]]]] = []
 
-    for iterable in tqdm.tqdm(marg_gain_lists):
-        first_element = next(iterable, None)
-        if first_element is not None:
-            # (value, iterator)
-            heapq.heappush(min_heap, (first_element, iterable))
+    # for iterable in tqdm.tqdm(marg_gain_lists):
+    #    first_element = next(iterable, None)
+    #    if first_element is not None:
+    # (value, iterator)
+    #        heapq.heappush(min_heap, (first_element, iterable))
+
+    nodes_iterable = heapq.merge(*marg_gain_lists)
 
     seeds: list[int] = []
     times: list[float] = []
 
     for _ in tqdm.trange(budget):
-        if not min_heap:
+        node = next(nodes_iterable, None)
+
+        if node is None:
             break  # Exit early if no more nodes.
 
-        (_, node), iterable = heapq.heappop(min_heap)
         end_time = time.perf_counter()
 
         seeds.append(node)
         times.append(end_time - start_time)
-
-        # Get the next element from the iterator
-        next_value = next(iterable, None)
-        if next_value is not None:
-            heapq.heappush(min_heap, (next_value, iterable))
 
     assert len(seeds) == budget
 
@@ -616,15 +619,6 @@ def main() -> None:
         for marginal_gain_error, num_samples in it.product(
             settings_dict["marginal_gain_errors"], settings_dict["num_samples"]
         ):
-            # Run CELF algorithm
-            if not skip_celf:
-                print(f"Running celfpp on {graph_name} with budget {max_budget}.")
-                model, celf_result = celf_pp_runner(
-                    graph, max_budget, marginal_gain_error, num_samples
-                )
-
-                graph_benchmark_results.append(celf_result)
-
             for use_diffusion_degree, partitioning_method in it.product(
                 settings_dict["use_diffusion_degree"],
                 settings_dict["partitioning_methods"],
@@ -645,6 +639,15 @@ def main() -> None:
                 )
 
                 graph_benchmark_results.append(community_im_result)
+
+            # Run CELF algorithm
+            if not skip_celf:
+                print(f"Running celfpp on {graph_name} with budget {max_budget}.")
+                model, celf_result = celf_pp_runner(
+                    graph, max_budget, marginal_gain_error, num_samples
+                )
+
+                graph_benchmark_results.append(celf_result)
 
         if skip_celf:
             model, _ = networkx_to_ic_model(graph)

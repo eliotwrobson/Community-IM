@@ -20,7 +20,7 @@ dependencies = [
   "types-tqdm~=4.66.0.5",
   "tqdm~=4.66.1",
   "setuptools~=69.0.3",
-  "cynetdiff==0.1.16",
+  "cynetdiff==0.1.18",
   "pooch~=1.8.2",
   "depqdict",
 ]
