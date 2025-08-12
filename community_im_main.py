@@ -362,14 +362,14 @@ def get_nested_solutions(
     times: list[float] = []
 
     for _ in tqdm.trange(budget):
-        node = next(nodes_iterable, None)
+        next_node_pair = next(nodes_iterable, None)  # type: ignore[call-overload]
 
-        if node is None:
+        if next_node_pair is None:
             break  # Exit early if no more nodes.
 
         end_time = time.perf_counter()
 
-        seeds.append(node)
+        seeds.append(next_node_pair[1])
         times.append(end_time - start_time)
 
     assert len(seeds) == budget
